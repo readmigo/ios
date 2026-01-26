@@ -1,0 +1,8 @@
+/* Localized app name for Simplified Chinese */
+"CFBundleDisplayName" = "米果智读";
+"CFBundleName" = "米果智读";
+
+/* Privacy permission descriptions */
+"NSMicrophoneUsageDescription" = "米果智读需要使用麦克风进行AI作者语音对话和跟读练习。";
+"NSSpeechRecognitionUsageDescription" = "米果智读使用语音识别功能来转录您在跟读和语音对话中的语音。";
+"NSPhotoLibraryUsageDescription" = "米果智读需要访问您的相册以在消息中添加图片附件。";

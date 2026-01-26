@@ -1,0 +1,76 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Create app on App Store Connect"
+  lane :create_app do
+    create_app_online(
+      app_name: "Readmigo",
+      language: "English",
+      sku: "readmigo",
+      platforms: ["ios"]
+    )
+  end
+
+  desc "Generate certificates and provisioning profiles"
+  lane :certificates do
+    get_certificates(
+      development: false,
+      generate_apple_certs: true
+    )
+    get_provisioning_profile(
+      app_identifier: "com.readmigo.app",
+      adhoc: false
+    )
+  end
+
+  desc "Build and upload to App Store Connect"
+  lane :release do
+    # Increment build number
+    increment_build_number(
+      xcodeproj: "Readmigo.xcodeproj"
+    )
+
+    # Build the app
+    build_app(
+      scheme: "Readmigo",
+      project: "Readmigo.xcodeproj",
+      output_directory: "./build",
+      output_name: "Readmigo.ipa",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          "com.readmigo.app" => "Readmigo AppStore"
+        }
+      }
+    )
+
+    # Upload to App Store Connect
+    upload_to_app_store(
+      skip_screenshots: true,
+      skip_metadata: true,
+      precheck_include_in_app_purchases: false
+    )
+  end
+
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    # Increment build number
+    increment_build_number(
+      xcodeproj: "Readmigo.xcodeproj"
+    )
+
+    # Build the app
+    build_app(
+      scheme: "Readmigo",
+      project: "Readmigo.xcodeproj",
+      output_directory: "./build",
+      output_name: "Readmigo.ipa",
+      export_method: "app-store"
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true
+    )
+  end
+end
