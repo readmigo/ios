@@ -1,6 +1,19 @@
 import Foundation
 import Combine
 
+// MARK: - Timeout Error
+
+enum LoadingTimeoutError: Error, LocalizedError {
+    case timeout
+
+    var errorDescription: String? {
+        switch self {
+        case .timeout:
+            return "reader.error.timeout".localized
+        }
+    }
+}
+
 @MainActor
 class ReaderViewModel: ObservableObject {
     let book: Book
@@ -43,6 +56,9 @@ class ReaderViewModel: ObservableObject {
     private var progressSaveTask: Task<Void, Never>?
     private let libraryManager = LibraryManager.shared
     private let progressStore = ReadingProgressStore.shared
+
+    /// Loading timeout in seconds (10 seconds max)
+    private let loadingTimeoutSeconds: Double = 10.0
 
     /// Initialize with Book only - will load BookDetail automatically
     init(book: Book) {
@@ -233,38 +249,61 @@ class ReaderViewModel: ObservableObject {
 
         // Load from API (returns metadata with contentUrl or direct htmlContent)
         let endpoint = APIEndpoints.bookContent(book.id, chapterId)
-        LoggingService.shared.debug(.reading, "Fetching chapter metadata from API", component: "ReaderViewModel")
+        LoggingService.shared.debug(.reading, "Fetching chapter metadata from API (timeout: \(loadingTimeoutSeconds)s)", component: "ReaderViewModel")
 
         do {
-            // Step 1: Get chapter metadata from API
-            let meta: ChapterContentMeta = try await APIClient.shared.request(
-                endpoint: endpoint
-            )
-            LoggingService.shared.info(.reading, "Got chapter metadata: \(meta.title), contentUrl: \(meta.contentUrl ?? "nil"), hasDirectContent: \(meta.htmlContent != nil)", component: "ReaderViewModel")
+            // Use timeout mechanism to prevent infinite loading
+            let timeoutNanoseconds = UInt64(loadingTimeoutSeconds * 1_000_000_000)
+            let content = try await withThrowingTaskGroup(of: ChapterContent.self) { group in
+                // Task 1: Actual API request
+                group.addTask {
+                    // Step 1: Get chapter metadata from API
+                    let meta: ChapterContentMeta = try await APIClient.shared.request(
+                        endpoint: endpoint
+                    )
 
-            // Step 2: Get HTML content (direct or from R2 CDN)
-            let htmlContent: String
-            if let directContent = meta.htmlContent {
-                // Local/dev mode: HTML content provided directly in API response
-                LoggingService.shared.debug(.reading, "Using direct HTML content from API response", component: "ReaderViewModel")
-                htmlContent = directContent
-            } else if let contentUrl = meta.contentUrl, let url = URL(string: contentUrl) {
-                // Production mode: Fetch HTML content from R2 CDN
-                LoggingService.shared.debug(.reading, "Fetching HTML content from R2: \(contentUrl)", component: "ReaderViewModel")
-                let (data, response) = try await URLSession.shared.data(from: url)
-                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                    throw APIError.serverError((response as? HTTPURLResponse)?.statusCode ?? 500, "Failed to fetch chapter content from R2")
+                    // Step 2: Get HTML content (direct or from R2 CDN)
+                    let htmlContent: String
+                    if let directContent = meta.htmlContent {
+                        // Local/dev mode: HTML content provided directly in API response
+                        htmlContent = directContent
+                    } else if let contentUrl = meta.contentUrl, let url = URL(string: contentUrl) {
+                        // Production mode: Fetch HTML content from R2 CDN
+                        let (data, response) = try await URLSession.shared.data(from: url)
+                        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                            throw APIError.serverError((response as? HTTPURLResponse)?.statusCode ?? 500, "Failed to fetch chapter content from R2")
+                        }
+                        guard let fetchedContent = String(data: data, encoding: .utf8) else {
+                            throw APIError.decodingError(NSError(domain: "ReaderViewModel", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to decode HTML content"]))
+                        }
+                        htmlContent = fetchedContent
+                    } else {
+                        throw APIError.invalidURL
+                    }
+
+                    // Step 3: Construct ChapterContent from meta + HTML
+                    return ChapterContent(meta: meta, htmlContent: htmlContent)
                 }
-                guard let fetchedContent = String(data: data, encoding: .utf8) else {
-                    throw APIError.decodingError(NSError(domain: "ReaderViewModel", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to decode HTML content"]))
+
+                // Task 2: Timeout after loadingTimeoutSeconds
+                group.addTask {
+                    try await Task.sleep(nanoseconds: timeoutNanoseconds)
+                    throw LoadingTimeoutError.timeout
                 }
-                htmlContent = fetchedContent
-            } else {
-                throw APIError.invalidURL
+
+                // Wait for the first task to complete (either success or timeout)
+                guard let result = try await group.next() else {
+                    throw LoadingTimeoutError.timeout
+                }
+
+                // Cancel the remaining task (timeout task if API succeeded, or vice versa)
+                group.cancelAll()
+
+                return result
             }
 
-            // Step 3: Construct ChapterContent from meta + HTML
-            let content = ChapterContent(meta: meta, htmlContent: htmlContent)
+            LoggingService.shared.info(.reading, "Got chapter content: \(content.title), wordCount: \(content.wordCount)", component: "ReaderViewModel")
+
             LoggingService.shared.info(.reading, "Successfully loaded chapter: \(content.title), wordCount: \(content.wordCount)", component: "ReaderViewModel")
 
             // Debug: Print chapter content details
@@ -293,6 +332,7 @@ class ReaderViewModel: ObservableObject {
 
             self.chapterContent = content
             self.scrollProgress = 0
+            isLoading = false  // Allow WebView to be created and render content
 
             // Cache the content for offline use
             try? await ContentCache.shared.saveChapterContent(content, bookId: book.id)
@@ -300,6 +340,10 @@ class ReaderViewModel: ObservableObject {
 
             // Trigger smart predownload for next chapters
             await triggerSmartPredownload()
+        } catch is LoadingTimeoutError {
+            LoggingService.shared.error(.reading, "Loading timeout after \(loadingTimeoutSeconds) seconds", component: "ReaderViewModel")
+            self.error = "reader.error.timeout".localized
+            isLoading = false
         } catch let apiError as APIError {
             LoggingService.shared.error(.reading, "API Error loading chapter: \(apiError)", component: "ReaderViewModel")
             // Handle specific API errors
@@ -320,13 +364,14 @@ class ReaderViewModel: ObservableObject {
             default:
                 self.error = "Failed to load chapter: \(apiError.localizedDescription)"
             }
+            isLoading = false
         } catch {
             LoggingService.shared.error(.reading, "Unexpected error loading chapter: \(error.localizedDescription)", component: "ReaderViewModel")
             self.error = "Failed to load chapter: \(error.localizedDescription)"
-            isLoading = false  // Only hide loading on error
+            isLoading = false
         }
 
-        // Note: On success, isLoading will be set to false when WebView sends contentReady message
+        // Note: isLoading is set to false after successful content load to allow WebView to be created
 
         // Reset the flag after content is loaded - it's a one-time navigation trigger
         if shouldStartFromLastPage {

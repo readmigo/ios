@@ -25357,6 +25357,29 @@
         }
       }
     },
+    "reader.error.timeout" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading timed out. Please try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载超时，请重试"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "載入逾時，請重試"
+          }
+        }
+      }
+    },
     "reader.exit" : {
       "extractionState" : "manual",
       "localizations" : {
