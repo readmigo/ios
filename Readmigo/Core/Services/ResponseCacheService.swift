@@ -253,10 +253,28 @@ actor ResponseCacheService {
         os_log(.debug, log: cacheLog, "%{public}@", cacheLogMessage("DEBUG", "🗑️", "Invalidated \(keysToRemove.count) entries with prefix: \(prefix)"))
     }
 
-    /// Invalidate all cache entries
+    /// Invalidate all cache entries (memory and disk)
     func invalidateAll() {
         cache.removeAll()
-        os_log(.info, log: cacheLog, "%{public}@", cacheLogMessage("INFO", "🗑️", "Invalidated all cached responses"))
+        clearPersistentCache()
+        os_log(.info, log: cacheLog, "%{public}@", cacheLogMessage("INFO", "🗑️", "Invalidated all cached responses (memory + disk)"))
+    }
+
+    /// Clear all persistent cache files from disk
+    private func clearPersistentCache() {
+        guard FileManager.default.fileExists(atPath: persistentCacheURL.path) else { return }
+
+        do {
+            let files = try FileManager.default.contentsOfDirectory(at: persistentCacheURL, includingPropertiesForKeys: nil)
+            var deletedCount = 0
+            for file in files where file.pathExtension == "cache" {
+                try FileManager.default.removeItem(at: file)
+                deletedCount += 1
+            }
+            os_log(.info, log: cacheLog, "%{public}@", cacheLogMessage("INFO", "🗑️", "Cleared \(deletedCount) persistent cache files from disk"))
+        } catch {
+            os_log(.error, log: cacheLog, "%{public}@", cacheLogMessage("ERROR", "❌", "Failed to clear persistent cache: \(error.localizedDescription)"))
+        }
     }
 
     /// Get cache statistics
