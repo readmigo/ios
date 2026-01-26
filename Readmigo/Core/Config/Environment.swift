@@ -2,13 +2,9 @@ import SwiftUI
 
 /// App environment enumeration for multi-environment support
 /// - production: V1 production (api.readmigo.app → readmigo-v1)
-/// - staging: Staging environment
-/// - debugging: Debug environment
 /// - local: Local development
 enum AppEnvironment: String, CaseIterable, Identifiable {
     case local = "local"
-    case debugging = "debugging"
-    case staging = "staging"
     case production = "production"
 
     var id: String { rawValue }
@@ -24,10 +20,6 @@ enum AppEnvironment: String, CaseIterable, Identifiable {
         switch self {
         case .local:
             return "http://localhost:3000/api/v1"
-        case .debugging:
-            return "https://readmigo-debug.fly.dev/api/v1"
-        case .staging:
-            return "https://readmigo-staging.fly.dev/api/v1"
         case .production:
             // Get app major version to determine which backend to use
             let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
@@ -45,10 +37,6 @@ enum AppEnvironment: String, CaseIterable, Identifiable {
         switch self {
         case .local:
             return "Local Dev"
-        case .debugging:
-            return "Debugging"
-        case .staging:
-            return "Staging"
         case .production:
             return "Production"
         }
@@ -59,10 +47,6 @@ enum AppEnvironment: String, CaseIterable, Identifiable {
         switch self {
         case .local:
             return "DEV"
-        case .debugging:
-            return "DBG"
-        case .staging:
-            return "STG"
         case .production:
             return "PROD"
         }
@@ -73,10 +57,6 @@ enum AppEnvironment: String, CaseIterable, Identifiable {
         switch self {
         case .local:
             return .orange
-        case .debugging:
-            return .blue
-        case .staging:
-            return .purple
         case .production:
             return .green
         }
@@ -85,7 +65,7 @@ enum AppEnvironment: String, CaseIterable, Identifiable {
     /// Whether this environment should show debug features
     var isDebugEnvironment: Bool {
         switch self {
-        case .local, .debugging, .staging:
+        case .local:
             return true
         case .production:
             return false
