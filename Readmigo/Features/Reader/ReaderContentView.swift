@@ -378,6 +378,109 @@ struct ReaderContentView: UIViewRepresentable {
                 }
 
                 /* ========================================
+                   Front Matter - Elegant Styling
+                   ======================================== */
+
+                /* Citation styling - elegant em-dash prefix */
+                cite {
+                    display: block;
+                    text-align: right;
+                    font-style: normal;
+                    font-size: 0.9em;
+                    margin-top: 0.8em;
+                    color: var(--text-secondary);
+                }
+
+                cite::before {
+                    content: "— ";
+                }
+
+                /* Blockquotes containing citations (epigraph style) */
+                blockquote:has(cite) {
+                    border: none;
+                    padding: 0;
+                    margin: 1.5em 0 2em 0;
+                    color: var(--text-color);
+                    font-style: italic;
+                }
+
+                blockquote:has(cite) p {
+                    text-indent: 0;
+                    text-align: center;
+                    margin: 0.5em 0;
+                }
+
+                /* When blockquote is the only/first content, center it as epigraph */
+                .chapter-content > blockquote:first-child {
+                    border: none;
+                    padding: 0;
+                    margin: 0 0 1.5em 0;
+                    color: var(--text-color);
+                    font-style: italic;
+                }
+
+                .chapter-content > blockquote:first-child p {
+                    text-indent: 0;
+                    text-align: center;
+                    margin: 0.5em 0;
+                }
+
+                /* Dedication - centered, italic, elegant spacing */
+                [epub\\:type="dedication"],
+                [role="doc-dedication"],
+                section.dedication {
+                    text-align: center;
+                    font-style: italic;
+                    padding: 2em 1em;
+                    margin: 1em 0;
+                }
+
+                [epub\\:type="dedication"] p,
+                [role="doc-dedication"] p,
+                section.dedication p {
+                    text-indent: 0;
+                    margin: 0.5em 0;
+                    line-height: 2;
+                    text-align: center;
+                }
+
+                /* Halftitlepage / Book title page */
+                [epub\\:type="halftitlepage"],
+                section.halftitlepage {
+                    text-align: center;
+                    padding: 3em 1em;
+                    margin: 1em 0;
+                }
+
+                [epub\\:type="halftitlepage"] p,
+                section.halftitlepage p {
+                    text-indent: 0;
+                    font-size: 1.3em;
+                    font-weight: 500;
+                    letter-spacing: 0.1em;
+                }
+
+                /* Part / Book dividers */
+                section[data-parent],
+                [epub\\:type="part"],
+                [role="doc-part"] {
+                    text-align: center;
+                    padding: 2em 1em;
+                    margin: 1em 0;
+                }
+
+                section[data-parent] h2,
+                section[data-parent] h3,
+                [epub\\:type="part"] h2,
+                [role="doc-part"] h2 {
+                    text-transform: uppercase;
+                    letter-spacing: 0.15em;
+                    font-size: 1.1em;
+                    font-weight: 400;
+                    margin: 0;
+                }
+
+                /* ========================================
                    Inline Styles
                    ======================================== */
 
