@@ -7,6 +7,11 @@ struct DiscoverTabBar: View {
     @Binding var selectedTabId: String
     let onTabSelected: (String) -> Void
 
+    /// Effective selected tab ID - uses first tab if selectedTabId is empty
+    private var effectiveSelectedId: String {
+        selectedTabId.isEmpty ? (tabs.first?.id ?? "") : selectedTabId
+    }
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
@@ -14,7 +19,7 @@ struct DiscoverTabBar: View {
                     ForEach(tabs) { tab in
                         DiscoverTabItem(
                             tab: tab,
-                            isSelected: tab.id == selectedTabId
+                            isSelected: tab.id == effectiveSelectedId
                         ) {
                             // Only call the callback - let ViewModel update selectedTabId
                             // This prevents the race condition where binding updates before selectTab runs
