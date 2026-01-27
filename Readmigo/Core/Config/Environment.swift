@@ -73,12 +73,12 @@ class EnvironmentManager: ObservableObject {
 
     private init() {
         #if DEBUG
-        // Debug builds: default to local, allow switching via EnvironmentSwitcher
+        // Debug builds: default to production, allow switching via EnvironmentSwitcher
         if let savedEnv = UserDefaults.standard.string(forKey: storageKey),
            let env = AppEnvironment(rawValue: savedEnv) {
             self.current = env
         } else {
-            self.current = .local
+            self.current = .production
         }
         #else
         // Release builds always use production
