@@ -188,14 +188,6 @@ struct ReaderContentView: UIViewRepresentable {
         let isCurlPage = readingMode == .curlPage
         let highlightsJSON = generateHighlightsJSON()
 
-        // Advanced typography values
-        let letterSpacingValue = letterSpacing
-        let wordSpacingValue = wordSpacing
-        let paragraphSpacingValue = paragraphSpacing
-        let textAlignValue = textAlignment.cssValue
-        let hyphenationValue = hyphenation ? "auto" : "none"
-        let fontWeightValue = fontWeight.cssValue
-
         return """
         <!DOCTYPE html>
         <html lang="en">
@@ -203,10 +195,7 @@ struct ReaderContentView: UIViewRepresentable {
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
             <style>
-                /* ========================================
-                   Professional Typography System
-                   ======================================== */
-
+                /* Standard SE Typography */
                 :root {
                     --text-color: \(textColor);
                     --text-secondary: \(secondaryColor);
@@ -215,10 +204,6 @@ struct ReaderContentView: UIViewRepresentable {
                     --link-color: \(linkColor);
                     --font-size: \(textSize)px;
                     --line-height: \(lineHeight);
-                    --letter-spacing: \(letterSpacingValue)px;
-                    --word-spacing: \(wordSpacingValue)px;
-                    --paragraph-spacing: \(paragraphSpacingValue)px;
-                    --font-weight: \(fontWeightValue);
                 }
 
                 * {
@@ -228,14 +213,9 @@ struct ReaderContentView: UIViewRepresentable {
                     box-sizing: border-box;
                 }
 
-                /* ========================================
-                   Base Typography
-                   ======================================== */
-
                 html {
                     font-size: var(--font-size);
                     -webkit-text-size-adjust: 100%;
-                    text-size-adjust: 100%;
                 }
 
                 body {
@@ -245,328 +225,42 @@ struct ReaderContentView: UIViewRepresentable {
                     padding-bottom: 100px;
                     background-color: var(--background);
                     color: var(--text-color);
-
-                    /* Font Stack - User selected */
                     font-family: \(fontFamily);
                     font-size: 1rem;
-                    font-weight: var(--font-weight);
                     line-height: var(--line-height);
-                    letter-spacing: var(--letter-spacing);
-                    word-spacing: var(--word-spacing);
-
-                    /* Font Rendering Optimization */
-                    -webkit-font-smoothing: antialiased;
-                    -moz-osx-font-smoothing: grayscale;
-                    text-rendering: optimizeLegibility;
-
-                    /* OpenType Features */
-                    font-kerning: normal;
-                    font-variant-ligatures: common-ligatures contextual;
-                    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
-
-                    /* Hyphenation */
-                    -webkit-hyphens: \(hyphenationValue);
-                    hyphens: \(hyphenationValue);
-                    -webkit-hyphenate-limit-before: 3;
-                    -webkit-hyphenate-limit-after: 2;
-                    -webkit-hyphenate-limit-lines: 2;
-
-                    /* Orphans & Widows Control */
-                    orphans: 2;
-                    widows: 2;
-
-                    /* Word Breaking */
                     word-wrap: break-word;
                     overflow-wrap: break-word;
                 }
 
-                /* ========================================
-                   Paragraph Styles
-                   ======================================== */
-
                 p {
-                    margin: 0 0 var(--paragraph-spacing) 0;
-                    text-align: \(textAlignValue);
-                    text-justify: inter-character;
-
-                    /* First Line Indent */
-                    text-indent: 2em;
-
-                    /* Hanging Punctuation */
-                    hanging-punctuation: first last allow-end;
-                    -webkit-hanging-punctuation: first last allow-end;
+                    margin: 0 0 1em 0;
                 }
-
-                /* First paragraph after headings - no indent */
-                h1 + p,
-                h2 + p,
-                h3 + p,
-                h4 + p,
-                h5 + p,
-                h6 + p,
-                blockquote + p,
-                .chapter-title + p {
-                    text-indent: 0;
-                }
-
-                /* First paragraph of chapter with drop cap */
-                .chapter-content > p:first-of-type {
-                    text-indent: 0;
-                }
-
-                /* ========================================
-                   Heading Styles
-                   ======================================== */
 
                 h1, h2, h3, h4, h5, h6 {
-                    font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
                     color: var(--text-color);
-                    font-weight: 600;
-                    line-height: 1.25;
                     margin-top: 1.5em;
                     margin-bottom: 0.5em;
-                    letter-spacing: -0.02em;
-
-                    /* Prevent page break after heading */
-                    page-break-after: avoid;
-                    break-after: avoid;
-
-                    /* No hyphenation in headings */
-                    -webkit-hyphens: none;
-                    hyphens: none;
                 }
 
-                h1 {
-                    font-size: 1.6em;
-                    margin-top: 0;
-                }
-
-                h2 { font-size: 1.35em; }
-                h3 { font-size: 1.15em; }
-                h4 { font-size: 1.05em; }
-
-                .chapter-title {
-                    text-align: center;
-                    margin-bottom: 2em;
-                    font-size: 1.4em;
-                    letter-spacing: 0;
-                }
-
-                /* ========================================
-                   Blockquote Styles
-                   ======================================== */
+                h1 { font-size: 1.5em; }
+                h2 { font-size: 1.3em; }
+                h3 { font-size: 1.1em; }
 
                 blockquote {
-                    margin: 1.5em 0;
-                    padding: 0.5em 1.5em;
+                    margin: 1em 0;
+                    padding-left: 1em;
                     border-left: 3px solid var(--text-secondary);
                     color: var(--text-secondary);
-                    font-style: italic;
-
-                    /* Prevent break inside */
-                    page-break-inside: avoid;
-                    break-inside: avoid;
                 }
-
-                blockquote p {
-                    text-indent: 0;
-                    margin-bottom: 0.5em;
-                }
-
-                blockquote p:last-child {
-                    margin-bottom: 0;
-                }
-
-                /* ========================================
-                   Front Matter - Elegant Styling
-                   ======================================== */
-
-                /* Citation styling - elegant em-dash prefix */
-                cite {
-                    display: block;
-                    text-align: right;
-                    font-style: normal;
-                    font-size: 0.9em;
-                    margin-top: 0.8em;
-                    color: var(--text-secondary);
-                }
-
-                cite::before {
-                    content: "— ";
-                }
-
-                /* Blockquotes containing citations (epigraph style) */
-                blockquote:has(cite) {
-                    border: none;
-                    padding: 0;
-                    margin: 1.5em 0 2em 0;
-                    color: var(--text-color);
-                    font-style: italic;
-                }
-
-                blockquote:has(cite) p {
-                    text-indent: 0;
-                    text-align: center;
-                    margin: 0.5em 0;
-                }
-
-                /* When blockquote is the only/first content, center it as epigraph */
-                .chapter-content > blockquote:first-child {
-                    border: none;
-                    padding: 0;
-                    margin: 0 0 1.5em 0;
-                    color: var(--text-color);
-                    font-style: italic;
-                }
-
-                .chapter-content > blockquote:first-child p {
-                    text-indent: 0;
-                    text-align: center;
-                    margin: 0.5em 0;
-                }
-
-                /* Dedication - centered, italic, elegant spacing */
-                [epub\\:type="dedication"],
-                [role="doc-dedication"],
-                section.dedication {
-                    text-align: center;
-                    font-style: italic;
-                    padding: 2em 1em;
-                    margin: 1em 0;
-                }
-
-                [epub\\:type="dedication"] p,
-                [role="doc-dedication"] p,
-                section.dedication p {
-                    text-indent: 0;
-                    margin: 0.5em 0;
-                    line-height: 2;
-                    text-align: center;
-                }
-
-                /* Halftitlepage / Book title page */
-                [epub\\:type="halftitlepage"],
-                section.halftitlepage {
-                    text-align: center;
-                    padding: 3em 1em;
-                    margin: 1em 0;
-                }
-
-                [epub\\:type="halftitlepage"] p,
-                section.halftitlepage p {
-                    text-indent: 0;
-                    font-size: 1.3em;
-                    font-weight: 500;
-                    letter-spacing: 0.1em;
-                }
-
-                /* Part / Book dividers */
-                section[data-parent],
-                [epub\\:type="part"],
-                [role="doc-part"] {
-                    text-align: center;
-                    padding: 2em 1em;
-                    margin: 1em 0;
-                }
-
-                section[data-parent] h2,
-                section[data-parent] h3,
-                [epub\\:type="part"] h2,
-                [role="doc-part"] h2 {
-                    text-transform: uppercase;
-                    letter-spacing: 0.15em;
-                    font-size: 1.1em;
-                    font-weight: 400;
-                    margin: 0;
-                }
-
-                /* ========================================
-                   Inline Styles
-                   ======================================== */
 
                 a {
                     color: var(--link-color);
                     text-decoration: none;
                 }
 
-                em, i {
-                    font-style: italic;
-                }
-
-                strong, b {
-                    font-weight: 600;
-                }
-
-                /* Small caps for abbreviations */
-                abbr {
-                    font-variant: small-caps;
-                    letter-spacing: 0.05em;
-                }
-
-                /* ========================================
-                   Lists
-                   ======================================== */
-
                 ul, ol {
                     margin: 0.5em 0;
                     padding-left: 2em;
-                }
-
-                li {
-                    margin-bottom: 0.15em;
-                    text-indent: 0;
-                    line-height: 1.4;
-                }
-
-                li p {
-                    text-indent: 0;
-                    margin-bottom: 0.15em;
-                }
-
-                /* Table of Contents / List styles - compact layout */
-                /* Target p tags that only contain links (common TOC pattern) */
-                p:has(> a:only-child) {
-                    margin-bottom: 0.3em;
-                    line-height: 1.3;
-                    text-indent: 0;
-                }
-
-                /* Consecutive link paragraphs (TOC pattern) */
-                p + p:has(a) {
-                    margin-top: 0;
-                }
-
-                /* Nav element (epub3 TOC) */
-                nav ol, nav ul {
-                    margin: 0.3em 0;
-                    padding-left: 1.5em;
-                }
-
-                nav li {
-                    margin-bottom: 0.1em;
-                    line-height: 1.3;
-                }
-
-                /* ========================================
-                   Images & Figures
-                   ======================================== */
-
-                figure {
-                    margin: 1.5em 0;
-                    text-align: center;
-                    break-inside: avoid;
-                    page-break-inside: avoid;
-                }
-
-                /* EPUB figcenter class - used for centered figures */
-                /* Override inline width styles from EPUB content */
-                .figcenter {
-                    margin: 1.5em 0;
-                    text-align: center;
-                    break-inside: avoid;
-                    page-break-inside: avoid;
-                    max-width: 100% !important;
-                    width: auto !important;
                 }
 
                 img {
@@ -575,186 +269,55 @@ struct ReaderContentView: UIViewRepresentable {
                     display: block;
                     margin: 0 auto;
                     cursor: pointer;
-                    transition: transform 0.15s ease;
                 }
 
-                img:active {
-                    transform: scale(0.98);
-                    opacity: 0.9;
+                figure {
+                    margin: 1em 0;
+                    text-align: center;
                 }
 
                 figcaption {
                     margin-top: 0.5em;
                     font-size: 0.875em;
                     color: var(--text-secondary);
-                    font-style: italic;
-                    text-indent: 0;
                 }
-
-                /* Dropcap images - decorative first letter */
-                img.dropcap {
-                    float: left;
-                    width: auto;
-                    height: 2em;
-                    margin: 0 0.3em 0.2em 0;
-                    display: inline;
-                }
-
-                /* Container for dropcap image */
-                .dropcap-container {
-                    display: inline;
-                }
-
-                /* Paragraph following dropcap */
-                p.dropcap {
-                    text-indent: 0;
-                }
-
-                /* Hide first character when dropcap image is present to prevent duplication */
-                p.dropcap::first-letter {
-                    opacity: 0;
-                    font-size: 0;
-                    width: 0;
-                    margin: 0;
-                    padding: 0;
-                }
-
-                /* ========================================
-                   Code Styles
-                   ======================================== */
 
                 code, pre {
-                    font-family: "SF Mono", "Menlo", "Monaco", monospace;
+                    font-family: monospace;
                     font-size: 0.9em;
-                    font-variant-ligatures: none;
-                    -webkit-hyphens: none;
-                    hyphens: none;
-                }
-
-                code {
-                    background-color: rgba(128, 128, 128, 0.1);
-                    padding: 0.15em 0.3em;
-                    border-radius: 3px;
                 }
 
                 pre {
-                    margin: 1.5em 0;
+                    margin: 1em 0;
                     padding: 1em;
                     background-color: rgba(128, 128, 128, 0.1);
                     overflow-x: auto;
-                    line-height: 1.4;
-                    border-radius: 6px;
                     white-space: pre-wrap;
-                    word-break: break-all;
                 }
-
-                pre code {
-                    background: none;
-                    padding: 0;
-                }
-
-                /* ========================================
-                   Tables
-                   ======================================== */
 
                 table {
                     width: 100%;
-                    margin: 1.5em 0;
+                    margin: 1em 0;
                     border-collapse: collapse;
-                    font-variant-numeric: tabular-nums lining-nums;
-                    font-size: 0.5em;
                 }
 
                 th, td {
-                    padding: 0.5em 0.75em;
+                    padding: 0.5em;
                     text-align: left;
                     border-bottom: 1px solid rgba(128, 128, 128, 0.3);
-                    text-indent: 0;
                 }
 
-                th {
-                    font-weight: 600;
+                hr {
+                    border: none;
+                    border-top: 1px solid var(--text-secondary);
+                    margin: 2em 0;
+                    opacity: 0.3;
                 }
-
-                /* TOC / Contents / List tables - compact layout */
-                /* Tables with summary attribute (epub TOC pattern) */
-                table[summary] {
-                    margin: 0.3em 0;
-                }
-
-                table[summary] td {
-                    padding: 0.02em 0.15em;
-                    line-height: 1.1;
-                    border-bottom: none;
-                    font-size: 0.8em;
-                }
-
-                table[summary] tr {
-                    line-height: 1.1;
-                }
-
-                /* Also support tables with links (fallback) */
-                table:has(a) {
-                    margin: 0.3em 0;
-                }
-
-                table:has(a) td {
-                    padding: 0.02em 0.15em;
-                    line-height: 1.1;
-                    border-bottom: none;
-                    font-size: 0.8em;
-                }
-
-                table:has(a) tr {
-                    line-height: 1.1;
-                }
-
-                /* ========================================
-                   CJK (Chinese/Japanese/Korean) Support
-                   ======================================== */
-
-                /* Chinese text optimization */
-                :lang(zh),
-                :lang(zh-CN),
-                :lang(zh-Hans),
-                :lang(zh-Hant) {
-                    /* CJK font stack */
-                    font-family: "Noto Serif SC", "Source Han Serif SC",
-                                 "Songti SC", "STSong", "SimSun",
-                                 Georgia, serif;
-
-                    /* Auto spacing between CJK and Latin */
-                    text-autospace: ideograph-alpha ideograph-numeric;
-                    -webkit-text-autospace: ideograph-alpha ideograph-numeric;
-
-                    /* Disable hyphenation for CJK */
-                    -webkit-hyphens: none;
-                    hyphens: none;
-
-                    /* Line break rules */
-                    line-break: strict;
-                    word-break: normal;
-                }
-
-                /* ========================================
-                   Selection & Highlights
-                   ======================================== */
 
                 ::selection {
                     background-color: var(--highlight);
                 }
 
-                ::-moz-selection {
-                    background-color: var(--highlight);
-                }
-
-                .word-highlight {
-                    background-color: var(--highlight);
-                    border-radius: 2px;
-                    padding: 0 2px;
-                }
-
-                /* User annotations highlight */
                 .user-highlight {
                     border-radius: 2px;
                     padding: 0 1px;
@@ -767,12 +330,10 @@ struct ReaderContentView: UIViewRepresentable {
                 .user-highlight.purple { background-color: rgba(156, 39, 176, 0.4); }
                 .user-highlight.orange { background-color: rgba(255, 152, 0, 0.4); }
 
-                /* Clickable highlights */
                 .user-highlight[data-highlight-id] {
                     cursor: pointer;
                 }
 
-                /* Annotation bubble indicator */
                 .annotation-indicator {
                     display: inline-flex;
                     align-items: center;
@@ -787,126 +348,11 @@ struct ReaderContentView: UIViewRepresentable {
                     margin-left: 4px;
                     vertical-align: super;
                     cursor: pointer;
-                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-                    transition: transform 0.15s ease;
-                }
-
-                .annotation-indicator:active {
-                    transform: scale(0.9);
                 }
 
                 .annotation-indicator::after {
                     content: "✎";
                     font-size: 10px;
-                }
-
-                /* Annotation tooltip preview */
-                .annotation-tooltip {
-                    position: absolute;
-                    background: var(--background);
-                    border: 1px solid var(--text-secondary);
-                    border-radius: 8px;
-                    padding: 8px 12px;
-                    max-width: 200px;
-                    font-size: 12px;
-                    color: var(--text);
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                    z-index: 1000;
-                    opacity: 0;
-                    pointer-events: none;
-                    transition: opacity 0.2s ease;
-                }
-
-                .annotation-tooltip.visible {
-                    opacity: 1;
-                    pointer-events: auto;
-                }
-
-                /* ========================================
-                   Horizontal Rules
-                   ======================================== */
-
-                hr {
-                    border: none;
-                    border-top: 1px solid var(--text-secondary);
-                    margin: 2em 0;
-                    opacity: 0.3;
-                }
-
-                /* Section break with ornament */
-                hr.section-break {
-                    border: none;
-                    text-align: center;
-                    margin: 2em 0;
-                }
-
-                hr.section-break::before {
-                    content: "* * *";
-                    color: var(--text-secondary);
-                    letter-spacing: 1em;
-                }
-
-                /* ========================================
-                   Special Classes
-                   ======================================== */
-
-                /* No text indent */
-                .no-indent {
-                    text-indent: 0 !important;
-                }
-
-                /* Centered text */
-                .center {
-                    text-align: center;
-                    text-indent: 0;
-                }
-
-                /* Right aligned */
-                .right {
-                    text-align: right;
-                    text-indent: 0;
-                }
-
-                /* Small text */
-                .small {
-                    font-size: 0.875em;
-                }
-
-                /* Large text */
-                .large {
-                    font-size: 1.125em;
-                }
-
-                /* Prevent page break */
-                .no-break {
-                    page-break-inside: avoid;
-                    break-inside: avoid;
-                }
-
-                /* Drop cap - optional feature */
-                .drop-cap::first-letter {
-                    float: left;
-                    font-size: 3.2em;
-                    line-height: 0.85;
-                    padding-right: 0.08em;
-                    padding-top: 0.05em;
-                    font-weight: 600;
-                    font-family: Georgia, serif;
-                }
-
-                /* ========================================
-                   Responsive Adjustments
-                   ======================================== */
-
-                @media (max-width: 375px) {
-                    body {
-                        padding-left: 16px;
-                        padding-right: 16px;
-                    }
-
-                    p {
-                        text-indent: 1.5em;
-                    }
                 }
 
                 /* ========================================
