@@ -47,10 +47,10 @@ final class DiscoverViewModel: ObservableObject {
     private var loadingTasks: [String: Task<Void, Never>] = [:]
 
     /// Desired tab order for category tabs (by slug)
-    /// Order: 经典文学-小说-戏剧-哲学-诗歌-冒险-浪漫-其他
+    /// Order: 小说-经典文学-戏剧-哲学-诗歌-冒险-浪漫-其他
     private let tabSortOrder: [String] = [
-        "classics",
         "fiction",
+        "classics",
         "drama",
         "philosophy",
         "poetry",
