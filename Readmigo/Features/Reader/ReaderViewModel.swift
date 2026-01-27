@@ -269,7 +269,9 @@ class ReaderViewModel: ObservableObject {
                         htmlContent = directContent
                     } else if let contentUrl = meta.contentUrl, let url = URL(string: contentUrl) {
                         // Production mode: Fetch HTML content from R2 CDN
-                        let (data, response) = try await URLSession.shared.data(from: url)
+                        var request = URLRequest(url: url)
+                        request.timeoutInterval = 8.0  // 8s timeout, leaving 2s for API request
+                        let (data, response) = try await URLSession.shared.data(for: request)
                         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
                             throw APIError.serverError((response as? HTTPURLResponse)?.statusCode ?? 500, "Failed to fetch chapter content from R2")
                         }
