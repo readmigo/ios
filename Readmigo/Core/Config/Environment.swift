@@ -10,25 +10,13 @@ enum AppEnvironment: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     /// API base URL for each environment
-    /// Production uses multi-version co-existence strategy (supports up to 10 versions):
-    /// - V1 (1.x.x): v1.api.readmigo.app → readmigo-v1
-    /// - V2 (2.x.x): v2.api.readmigo.app → readmigo-v2
-    /// - V3 (3.x.x): v3.api.readmigo.app → readmigo-v3
-    /// - ...
-    /// - Latest: api.readmigo.app → latest version
+    /// All app versions use the same API endpoint (api.readmigo.app/api/v1)
     var apiBaseURL: String {
         switch self {
         case .local:
             return "http://localhost:3000/api/v1"
         case .production:
-            // Get app major version to determine which backend to use
-            let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
-            let majorVersion = appVersion.split(separator: ".").first.flatMap { Int($0) } ?? 1
-
-            // Multi-version co-existence: each major version has its own subdomain
-            // Example: v1.x.x → v1.api.readmigo.app, v2.x.x → v2.api.readmigo.app
-            let versionedDomain = "v\(majorVersion).api.readmigo.app"
-            return "https://\(versionedDomain)/api/v\(majorVersion)"
+            return "https://api.readmigo.app/api/v1"
         }
     }
 
