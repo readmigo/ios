@@ -324,7 +324,8 @@ extension SearchBook {
             publishedAt: nil,
             createdAt: nil,
             hasAudiobook: nil,
-            audiobookId: nil
+            audiobookId: nil,
+            stylesUrl: nil
         )
     }
 }

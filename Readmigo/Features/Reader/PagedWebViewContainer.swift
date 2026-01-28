@@ -134,6 +134,7 @@ struct PagedWebViewContainer: View {
                             textAlignment: textAlignment,
                             hyphenation: hyphenation,
                             fontWeight: fontWeight,
+                            stylesUrl: viewModel.book.stylesUrl,
                             startFromLastPage: chapterView.startFromLastPage
                         )
 

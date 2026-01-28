@@ -94,6 +94,7 @@ struct Book: Codable, Identifiable, Equatable {
     let createdAt: Date?
     let hasAudiobook: Bool?
     let audiobookId: String?
+    let stylesUrl: String?  // SE native CSS URL
 
     // MARK: - Computed Properties
 
@@ -185,7 +186,7 @@ struct BookDetail: Codable, Identifiable {
         case id, title, author, authorId, description, coverUrl, coverThumbUrl
         case subjects, genres, difficultyScore, fleschScore
         case wordCount, chapterCount, source, status, publishedAt, createdAt
-        case hasAudiobook, audiobookId
+        case hasAudiobook, audiobookId, stylesUrl
     }
 
     init(from decoder: Decoder) throws {
@@ -217,7 +218,8 @@ struct BookDetail: Codable, Identifiable {
             publishedAt: try container.decodeIfPresent(Date.self, forKey: .publishedAt),
             createdAt: try container.decodeIfPresent(Date.self, forKey: .createdAt),
             hasAudiobook: try container.decodeIfPresent(Bool.self, forKey: .hasAudiobook),
-            audiobookId: try container.decodeIfPresent(String.self, forKey: .audiobookId)
+            audiobookId: try container.decodeIfPresent(String.self, forKey: .audiobookId),
+            stylesUrl: try container.decodeIfPresent(String.self, forKey: .stylesUrl)
         )
     }
 
@@ -248,6 +250,7 @@ struct BookDetail: Codable, Identifiable {
         try container.encodeIfPresent(book.createdAt, forKey: .createdAt)
         try container.encodeIfPresent(book.hasAudiobook, forKey: .hasAudiobook)
         try container.encodeIfPresent(book.audiobookId, forKey: .audiobookId)
+        try container.encodeIfPresent(book.stylesUrl, forKey: .stylesUrl)
     }
 
     // Convenience initializer for direct construction

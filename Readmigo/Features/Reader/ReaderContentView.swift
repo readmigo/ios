@@ -43,6 +43,9 @@ struct ReaderContentView: UIViewRepresentable {
     var hyphenation: Bool = true
     var fontWeight: ReaderFontWeight = .regular
 
+    // SE native CSS URL (if available)
+    var stylesUrl: String? = nil
+
     // Cross-chapter navigation: start from last page when navigating backwards
     var startFromLastPage: Bool = false
 
@@ -188,14 +191,18 @@ struct ReaderContentView: UIViewRepresentable {
         let isCurlPage = readingMode == .curlPage
         let highlightsJSON = generateHighlightsJSON()
 
+        // SE native CSS (loaded before user settings so user preferences can override)
+        let seStylesLink = stylesUrl.map { "<link rel=\"stylesheet\" href=\"\($0)\">" } ?? ""
+
         return """
         <!DOCTYPE html>
         <html lang="en">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            \(seStylesLink)
             <style>
-                /* Standard SE Typography */
+                /* User Settings CSS (overrides SE styles) */
                 :root {
                     --text-color: \(textColor);
                     --text-secondary: \(secondaryColor);
@@ -387,6 +394,15 @@ struct ReaderContentView: UIViewRepresentable {
                     box-sizing: border-box;
                     overflow: hidden;
                     background-color: var(--background);
+                }
+
+                /* Cover page - no padding for immersive display */
+                .page.cover-page {
+                    padding: 0;
+                }
+
+                .page.cover-page .page-content {
+                    height: 100vh;
                 }
 
                 .page-content {
@@ -1139,9 +1155,13 @@ struct ReaderContentView: UIViewRepresentable {
 
         // For paged mode, we wrap content in a pages container
         // The actual pagination happens via JavaScript measuring
+        // Add cover-page class for immersive cover display
+        let isCoverPage = titleLower == "cover"
+        let pageClass = isCoverPage ? "page cover-page" : "page"
+
         return """
         <div class="pages-container" id="pagesContainer" style="opacity: 0;">
-            <div class="page" data-page="0">
+            <div class="\(pageClass)" data-page="0">
                 <div class="page-content">
                     \(titleHtml)
                     <div class="chapter-content">

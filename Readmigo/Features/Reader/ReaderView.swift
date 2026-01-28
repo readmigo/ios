@@ -155,7 +155,9 @@ struct ReaderView: View {
                             paragraphSpacing: themeManager.paragraphSpacing,
                             textAlignment: themeManager.textAlignment,
                             hyphenation: themeManager.hyphenation,
-                            fontWeight: themeManager.fontWeight
+                            fontWeight: themeManager.fontWeight,
+                            // SE native CSS
+                            stylesUrl: book.stylesUrl
                         )
                     }
                 } else if let error = viewModel.error {
