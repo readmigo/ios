@@ -44,3 +44,4 @@ Secrets/
 # Misc
 .DS_Store
 *.log
+.sentryclirc

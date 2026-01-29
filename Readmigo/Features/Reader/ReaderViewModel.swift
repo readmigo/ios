@@ -231,7 +231,7 @@ class ReaderViewModel: ObservableObject {
 
             self.chapterContent = offlineContent
             self.scrollProgress = 0
-            // Note: isLoading will be set to false when WebView sends contentReady message
+            isLoading = false  // Allow WebView to be created and render content
 
             // Trigger smart predownload for next chapters
             await triggerSmartPredownload()

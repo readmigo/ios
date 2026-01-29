@@ -1419,7 +1419,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"$CONFIGURATION\" = \"Release\" ]; then\n    # Check for auth token in env or ~/.sentryclirc\n    if [ -z \"$SENTRY_AUTH_TOKEN\" ] && [ ! -f \"$HOME/.sentryclirc\" ]; then\n        echo \"warning: No Sentry auth configured, skipping dSYM upload\"\n        exit 0\n    fi\n    \n    # Download sentry-cli if not exists\n    if ! command -v sentry-cli &> /dev/null; then\n        echo \"Installing sentry-cli...\"\n        curl -sL https://sentry.io/get-cli/ | bash\n    fi\n    \n    # Upload dSYM files\n    echo \"Uploading dSYM files to Sentry...\"\n    sentry-cli debug-files upload \\\n        --org readmigo \\\n        --project ios \\\n        \"$DWARF_DSYM_FOLDER_PATH\"\nfi\n";
+			shellScript = "if [ \"$CONFIGURATION\" = \"Release\" ]; then\n    # Check for auth token in env or ~/.sentryclirc\n    if [ -z \"$SENTRY_AUTH_TOKEN\" ] && [ ! -f \"$HOME/.sentryclirc\" ]; then\n        echo \"warning: No Sentry auth configured, skipping dSYM upload\"\n        exit 0\n    fi\n    \n    # Download sentry-cli if not exists\n    if ! command -v sentry-cli &> /dev/null; then\n        echo \"Installing sentry-cli...\"\n        curl -sL https://sentry.io/get-cli/ | bash\n    fi\n    \n    # Upload dSYM files\n    echo \"Uploading dSYM files to Sentry...\"\n    sentry-cli debug-files upload \\\n        --org starecho \\\n        --project readmigo-ios \\\n        \"$DWARF_DSYM_FOLDER_PATH\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

@@ -12,6 +12,10 @@ struct BookDetailHeaderImmersive: View {
     // Appear animation state
     @State private var hasAppeared = false
 
+    // Cover load state
+    @State private var coverLoadFailed = false
+    @State private var backgroundLoadFailed = false
+
     // Fixed dimensions
     private let coverWidth: CGFloat = 160
     private let coverHeight: CGFloat = 240
@@ -57,12 +61,14 @@ struct BookDetailHeaderImmersive: View {
                 .frame(height: headerHeight)
 
             // Background blur layer
-            bookCoverBackground
-                .frame(maxWidth: .infinity)
-                .frame(height: headerHeight)
-                .clipped()
-                .blur(radius: 30)
-                .overlay(Color.black.opacity(0.3))
+            GeometryReader { geometry in
+                bookCoverBackground
+                    .frame(width: geometry.size.width, height: headerHeight)
+                    .clipped()
+            }
+            .frame(height: headerHeight)
+            .blur(radius: 30)
+            .overlay(Color.black.opacity(0.3))
 
             // Gradient overlays
             VStack(spacing: 0) {
@@ -146,8 +152,9 @@ struct BookDetailHeaderImmersive: View {
 
     @ViewBuilder
     private var bookCoverBackground: some View {
-        if let urlString = book.coverUrl, !urlString.isEmpty, let url = URL(string: urlString) {
+        if let urlString = book.coverUrl, !urlString.isEmpty, let url = URL(string: urlString), !backgroundLoadFailed {
             KFImage(url)
+                .onFailure { _ in backgroundLoadFailed = true }
                 .resizable()
                 .aspectRatio(contentMode: .fill)
         } else {
@@ -161,11 +168,12 @@ struct BookDetailHeaderImmersive: View {
             .aspectRatio(2/3, contentMode: .fit)
             .overlay(
                 Group {
-                    if let urlString = book.coverUrl, !urlString.isEmpty, let url = URL(string: urlString) {
+                    if let urlString = book.coverUrl, !urlString.isEmpty, let url = URL(string: urlString), !coverLoadFailed {
                         KFImage(url)
                             .placeholder { _ in
                                 ProgressView()
                             }
+                            .onFailure { _ in coverLoadFailed = true }
                             .fade(duration: 0.25)
                             .resizable()
                             .aspectRatio(contentMode: .fill)

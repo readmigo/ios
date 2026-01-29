@@ -193,23 +193,7 @@ struct BookDetailView: View {
 
                     // Content sections
                     contentSections
-                        .background(
-                            Group {
-                                #if DEBUG
-                                GeometryReader { geo in
-                                    Color.clear
-                                        .onAppear {
-                                            LoggingService.shared.debug(.books, "DEBUG_LAYOUT: Book '\(book.title)' content width: \(geo.size.width)", component: "BookDetailView")
-                                        }
-                                        .onChange(of: geo.size.width) { _, newWidth in
-                                            LoggingService.shared.debug(.books, "DEBUG_LAYOUT: Book '\(book.title)' content width changed to: \(newWidth)", component: "BookDetailView")
-                                        }
-                                }
-                                #else
-                                Color.clear
-                                #endif
-                            }
-                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                 }

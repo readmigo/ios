@@ -394,8 +394,11 @@ struct PagedWebViewContainer: View {
 
             // Use DispatchQueue to sync with animation completion
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                // Update current chapter
+                // Update current chapter index and chapter object
                 viewModel.currentChapterIndex = nextIndex
+                if nextIndex < viewModel.chapters.count {
+                    viewModel.currentChapter = viewModel.chapters[nextIndex]
+                }
                 viewModel.shouldStartFromLastPage = false
 
                 // Update isCurrent flags
@@ -456,8 +459,11 @@ struct PagedWebViewContainer: View {
 
             // Use DispatchQueue to sync with animation completion
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                // Update current chapter
+                // Update current chapter index and chapter object
                 viewModel.currentChapterIndex = prevIndex
+                if prevIndex >= 0 && prevIndex < viewModel.chapters.count {
+                    viewModel.currentChapter = viewModel.chapters[prevIndex]
+                }
                 viewModel.shouldStartFromLastPage = true
 
                 // Update isCurrent flags
