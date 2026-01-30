@@ -149,6 +149,7 @@ struct CurrentlyReadingLocalCard: View {
                 Group {
                     if let urlString = currentlyReading.book.displayCoverUrl, !urlString.isEmpty, let url = URL(string: urlString) {
                         KFImage(url)
+                            .loadDiskFileSynchronously()
                             .placeholder { _ in ProgressView() }
                             .fade(duration: 0.25)
                             .resizable()
@@ -307,6 +308,7 @@ struct CurrentlyReadingCard: View {
                 Group {
                     if let urlString = userBook.book.displayCoverUrl, !urlString.isEmpty, let url = URL(string: urlString) {
                         KFImage(url)
+                            .loadDiskFileSynchronously()
                             .placeholder { _ in ProgressView() }
                             .fade(duration: 0.25)
                             .resizable()
@@ -449,6 +451,7 @@ struct RecentlyBrowsedMergedCard: View {
             Group {
                 if let urlString = item.displayCoverUrl, !urlString.isEmpty, let url = URL(string: urlString), !loadFailed {
                     KFImage(url)
+                        .loadDiskFileSynchronously()
                         .placeholder { _ in ProgressView() }
                         .onFailure { _ in
                             loadFailed = true
@@ -565,6 +568,7 @@ struct RecentlyBrowsedHorizontalCard: View {
             Group {
                 if let urlString = item.book.displayCoverUrl, !urlString.isEmpty, let url = URL(string: urlString) {
                     KFImage(url)
+                        .loadDiskFileSynchronously()
                         .placeholder { _ in ProgressView() }
                         .fade(duration: 0.25)
                         .resizable()
@@ -741,6 +745,7 @@ struct FavoriteBookCard: View {
                     Group {
                         if let urlString = favorite.book.displayCoverUrl, !urlString.isEmpty, let url = URL(string: urlString) {
                             KFImage(url)
+                                .loadDiskFileSynchronously()
                                 .placeholder { _ in ProgressView() }
                                 .fade(duration: 0.25)
                                 .resizable()
@@ -963,6 +968,7 @@ struct GuestBrowsedBookCard: View {
             Group {
                 if let urlString = book.displayCoverUrl, !urlString.isEmpty, let url = URL(string: urlString) {
                     KFImage(url)
+                        .loadDiskFileSynchronously()
                         .placeholder { _ in ProgressView() }
                         .fade(duration: 0.25)
                         .resizable()
@@ -1137,6 +1143,7 @@ struct RecentlyBrowsedGridCardV2: View {
                     Group {
                         if let urlString = item.displayCoverUrl, !urlString.isEmpty, let url = URL(string: urlString) {
                             KFImage(url)
+                                .loadDiskFileSynchronously()
                                 .placeholder { _ in ProgressView() }
                                 .fade(duration: 0.25)
                                 .resizable()
