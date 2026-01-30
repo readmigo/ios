@@ -443,18 +443,29 @@ struct RecentlyBrowsedMergedSection: View {
 
 struct RecentlyBrowsedMergedCard: View {
     let item: BrowsingHistoryDisplayItem
-    @State private var loadFailed = false
+    @State private var useFullCover = false
+
+    /// Use thumb URL first, fallback to full cover URL if thumb fails
+    private var effectiveCoverUrl: String? {
+        if useFullCover {
+            return item.coverUrl
+        }
+        return item.coverThumbUrl ?? item.coverUrl
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            // Cover
+            // Cover - try thumbUrl first, fallback to full coverUrl on failure
             Group {
-                if let urlString = item.displayCoverUrl, !urlString.isEmpty, let url = URL(string: urlString), !loadFailed {
+                if let urlString = effectiveCoverUrl, !urlString.isEmpty, let url = URL(string: urlString) {
                     KFImage(url)
                         .loadDiskFileSynchronously()
                         .placeholder { _ in ProgressView() }
                         .onFailure { _ in
-                            loadFailed = true
+                            // If thumb failed and we have a different full cover URL, try it
+                            if !useFullCover && item.coverThumbUrl != nil && item.coverUrl != nil && item.coverThumbUrl != item.coverUrl {
+                                useFullCover = true
+                            }
                         }
                         .retry(maxCount: 2, interval: .seconds(1))
                         .fade(duration: 0.25)
@@ -961,15 +972,30 @@ struct GuestLibraryContentView: View {
 
 struct GuestBrowsedBookCard: View {
     let book: BrowsingHistoryManager.BrowsedBook
+    @State private var useFullCover = false
+
+    /// Use thumb URL first, fallback to full cover URL if thumb fails
+    private var effectiveCoverUrl: String? {
+        if useFullCover {
+            return book.coverUrl
+        }
+        return book.coverThumbUrl ?? book.coverUrl
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            // Cover
+            // Cover - try thumbUrl first, fallback to full coverUrl on failure
             Group {
-                if let urlString = book.displayCoverUrl, !urlString.isEmpty, let url = URL(string: urlString) {
+                if let urlString = effectiveCoverUrl, !urlString.isEmpty, let url = URL(string: urlString) {
                     KFImage(url)
                         .loadDiskFileSynchronously()
                         .placeholder { _ in ProgressView() }
+                        .onFailure { _ in
+                            // If thumb failed and we have a different full cover URL, try it
+                            if !useFullCover && book.coverThumbUrl != nil && book.coverUrl != nil && book.coverThumbUrl != book.coverUrl {
+                                useFullCover = true
+                            }
+                        }
                         .fade(duration: 0.25)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
