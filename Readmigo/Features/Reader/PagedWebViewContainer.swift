@@ -138,9 +138,12 @@ struct PagedWebViewContainer: View {
                             startFromLastPage: chapterView.startFromLastPage
                         )
 
-                        // DEBUG: Yellow overlay when loading
-                        if debugColorsEnabled && chapterView.isLoading {
-                            Color.yellow.opacity(0.5)
+                        // Loading indicator for current chapter
+                        if chapterView.isCurrent && chapterView.isLoading {
+                            Color.black.opacity(0.3)
+                            ProgressView()
+                                .scaleEffect(1.2)
+                                .tint(.white)
                         }
                     }
                     .frame(width: geometry.size.width, height: geometry.size.height)

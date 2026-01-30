@@ -441,18 +441,24 @@ struct RecentlyBrowsedMergedSection: View {
 
 struct RecentlyBrowsedMergedCard: View {
     let item: BrowsingHistoryDisplayItem
+    @State private var loadFailed = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             // Cover
             Group {
-                if let urlString = item.displayCoverUrl, !urlString.isEmpty, let url = URL(string: urlString) {
+                if let urlString = item.displayCoverUrl, !urlString.isEmpty, let url = URL(string: urlString), !loadFailed {
                     KFImage(url)
                         .placeholder { _ in ProgressView() }
+                        .onFailure { _ in
+                            loadFailed = true
+                        }
+                        .retry(maxCount: 2, interval: .seconds(1))
                         .fade(duration: 0.25)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                 } else {
+                    // Fallback: show book icon
                     RoundedRectangle(cornerRadius: 8)
                         .fill(Color.gray.opacity(0.3))
                         .overlay(
