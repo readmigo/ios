@@ -116,6 +116,10 @@ open /tmp/Readmigo.xcarchive
 git add Readmigo.xcodeproj/project.pbxproj Readmigo/Info.plist
 git commit -m "chore: bump version to ${VERSION} (${BUILD})"
 git push
+
+# 创建并推送 tag（发布成功后执行）
+git tag -a "v${VERSION}" -m "Release ${VERSION}"
+git push origin "v${VERSION}"
 ```
 
 ## 流程图
@@ -159,9 +163,129 @@ git push
          │
          ▼
 ┌─────────────────┐
+│  创建 Git Tag   │
+│  vX.Y.Z         │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
 │  App Store 发布 │
 │  提交审核       │
 └─────────────────┘
+```
+
+## Git Tag 管理
+
+### 创建发布 Tag
+
+发布成功后创建 Tag 标记版本：
+
+```bash
+# 创建 tag
+git tag -a v2.0.1 -m "Release 2.0.1"
+
+# 推送 tag 到远程
+git push origin v2.0.1
+
+# 推送所有 tags
+git push origin --tags
+```
+
+### Tag 命名规范
+
+| 类型 | 格式 | 示例 |
+|------|------|------|
+| 正式发布 | vX.Y.Z | v2.0.1 |
+| 测试版本 | vX.Y.Z-beta.N | v2.0.1-beta.1 |
+| 候选版本 | vX.Y.Z-rc.N | v2.0.1-rc.1 |
+
+### 查看 Tags
+
+```bash
+# 列出所有 tags
+git tag -l
+
+# 列出匹配模式的 tags
+git tag -l "v2.*"
+
+# 查看 tag 详情
+git show v2.0.1
+```
+
+### 删除 Tag（谨慎使用）
+
+```bash
+# 删除本地 tag
+git tag -d v2.0.1
+
+# 删除远程 tag
+git push origin --delete v2.0.1
+```
+
+## 分支管理策略
+
+### 分支结构
+
+```
+main (主分支)
+├── 稳定代码，随时可发布
+├── 所有发布从此分支构建
+└── 受保护，需 PR 合并
+
+feature/* (功能分支)
+├── 新功能开发
+├── 从 main 创建
+└── 完成后合并回 main
+
+bugfix/* (修复分支)
+├── Bug 修复
+├── 从 main 创建
+└── 完成后合并回 main
+
+hotfix/* (紧急修复)
+├── 生产环境紧急修复
+├── 从 main 创建
+└── 修复后立即合并并发布
+```
+
+### 分支命名规范
+
+| 类型 | 格式 | 示例 |
+|------|------|------|
+| 功能 | feature/简短描述 | feature/add-dark-mode |
+| 修复 | bugfix/issue编号-描述 | bugfix/123-fix-crash |
+| 紧急 | hotfix/简短描述 | hotfix/login-failure |
+
+### 工作流程
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                        main                              │
+└─────────────────────────────────────────────────────────┘
+     │                    ▲                    ▲
+     │ 创建分支           │ PR 合并            │ PR 合并
+     ▼                    │                    │
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│ feature/xxx  │    │ bugfix/xxx   │    │ hotfix/xxx   │
+└──────────────┘    └──────────────┘    └──────────────┘
+     │                    │                    │
+     │ 开发完成           │ 修复完成           │ 紧急修复
+     ▼                    ▼                    ▼
+   创建 PR             创建 PR              创建 PR
+```
+
+### 发布后操作
+
+1. **合并代码** → main 分支
+2. **创建 Tag** → vX.Y.Z
+3. **删除功能分支**（可选）
+
+```bash
+# 删除已合并的本地分支
+git branch -d feature/xxx
+
+# 删除远程分支
+git push origin --delete feature/xxx
 ```
 
 ## 常见问题
@@ -171,3 +295,4 @@ git push
 | Archive 版本不对 | Info.plist 未更新 | 同时更新 project.pbxproj 和 Info.plist |
 | 上传失败 "No Accounts" | 未登录 App Store Connect | 在 Xcode Organizer 中手动上传 |
 | Build 号重复 | 同一天多次发版 | 使用 YYYYMMDD + 序号，如 2026013101 |
+| Tag 已存在 | 重复创建同名 tag | 删除旧 tag 或使用新版本号 |
