@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Readmigo</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -12,12 +14,10 @@
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
-	<key>CFBundleDisplayName</key>
-	<string>Readmigo</string>
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.0.1</string>
+	<string>2.0.2</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -33,10 +33,10 @@
 	<string>20260131</string>
 	<key>GIDClientID</key>
 	<string>$(GOOGLE_CLIENT_ID)</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
@@ -44,10 +44,10 @@
 	</dict>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Readmigo needs microphone access for voice chat with AI authors and follow-along reading practice.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Readmigo uses speech recognition to transcribe your voice during follow-along reading and voice chat.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Readmigo needs access to your photo library to attach images to messages.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Readmigo uses speech recognition to transcribe your voice during follow-along reading and voice chat.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
