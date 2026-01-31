@@ -32,12 +32,12 @@ actor ResponseCacheService {
     }
 
     /// Keys that should be persisted to disk for instant app startup
-    /// Note: Uses prefix matching, so "discover_books_category_" matches "discover_books_category_123"
+    /// Note: Uses prefix matching, so "bookstore_books_category_" matches "bookstore_books_category_123"
     private static let persistentKeys: Set<String> = [
-        // 书城 (Discover) tab
-        "discover_tabs",
-        "discover_books_recommendation",
-        "discover_books_category_",
+        // 书城 (Bookstore) tab
+        "bookstore_tabs",
+        "bookstore_books_recommendation",
+        "bookstore_books_category_",
         // 书架 (Library) tab
         "user_library",
         "recommendations",
@@ -401,17 +401,17 @@ extension ResponseCacheService {
         "related_authors_\(authorId)"
     }
 
-    /// Generate cache key for discover tabs (persisted)
-    static func discoverTabsKey() -> String {
-        "discover_tabs"
+    /// Generate cache key for bookstore tabs (persisted)
+    static func bookstoreTabsKey() -> String {
+        "bookstore_tabs"
     }
 
-    /// Generate cache key for discover books by category (persisted)
-    static func discoverBooksKey(categoryId: String?) -> String {
+    /// Generate cache key for bookstore books by category (persisted)
+    static func bookstoreBooksKey(categoryId: String?) -> String {
         if let categoryId = categoryId {
-            return "discover_books_category_\(categoryId)"
+            return "bookstore_books_category_\(categoryId)"
         }
-        return "discover_books_recommendation"
+        return "bookstore_books_recommendation"
     }
 }
 

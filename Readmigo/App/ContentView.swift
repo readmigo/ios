@@ -60,9 +60,9 @@ struct MainTabView: View {
                     }
                     .tag(0)
 
-                DiscoverView()
+                BookstoreView()
                     .environmentObject(libraryManager)
-                    .trackPage("DiscoverView")
+                    .trackPage("BookstoreView")
                     .tabItem {
                         Label("tab.discover".localized, systemImage: "storefront")
                     }
@@ -94,7 +94,7 @@ struct MainTabView: View {
                     // Same tab tapped - trigger scroll to top
                     switch newValue {
                     case 1:
-                        NotificationCenter.default.post(name: .discoverTabDoubleTapped, object: nil)
+                        NotificationCenter.default.post(name: .bookstoreTabDoubleTapped, object: nil)
                     case 2:
                         NotificationCenter.default.post(name: .agoraTabDoubleTapped, object: nil)
                     default:
@@ -110,6 +110,6 @@ struct MainTabView: View {
 // MARK: - Tab Double-Tap Notifications
 
 extension Notification.Name {
-    static let discoverTabDoubleTapped = Notification.Name("discoverTabDoubleTapped")
+    static let bookstoreTabDoubleTapped = Notification.Name("bookstoreTabDoubleTapped")
     static let agoraTabDoubleTapped = Notification.Name("agoraTabDoubleTapped")
 }

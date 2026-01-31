@@ -4,13 +4,15 @@ import Combine
 
 struct BookstoreView: View {
     @EnvironmentObject var libraryManager: LibraryManager
-    @ObservedObject private var viewModel = BookstoreViewModel.shared
-    // Tab paging & scroll-to-top coordination
-    @State private var pagerSelection = 0
-    @State private var scrollSignals: [String: Int] = [:]
+    @EnvironmentObject var favoritesManager: FavoritesManager
     @State private var showSearchView = false
-    // Tab double-tap notification
-    private let tabDoubleTapPublisher = NotificationCenter.default.publisher(for: .bookstoreTabDoubleTapped)
+    @State private var books: [BookWithScore] = []
+    @State private var isLoading = false
+    @State private var isLoadingMore = false
+    @State private var hasMore = true
+    @State private var currentPage = 1
+    @State private var totalBooks = 0
+    private let pageSize = 20
 
     var body: some View {
         NavigationStack {
@@ -34,25 +36,8 @@ struct BookstoreView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 8)
 
-                // Tab Bar (sticky, outside ScrollView)
-                BookstoreTabBar(
-                        tabs: viewModel.tabs,
-                        selectedTabId: $viewModel.selectedTabId,
-                        onTabSelected: { tabId in
-                            // Align pager index with tapped tab
-                            if let index = viewModel.tabs.firstIndex(where: { $0.id == tabId }) {
-                                pagerSelection = index
-                            }
-                            triggerScrollToTop(for: tabId)
-                            Task {
-                                await viewModel.selectTab(tabId)
-                            }
-                        }
-                    )
-                    .background(Color(.systemBackground))
-
-                // Discover tabs content
-                bookstoreTabsContent
+                // Books list
+                booksContent
             }
             .navigationTitle("tab.discover".localized)
             .navigationBarTitleDisplayMode(.inline)
@@ -61,448 +46,154 @@ struct BookstoreView: View {
             }
         }
         .task {
-            // Load discover tabs
-            if viewModel.tabs.isEmpty {
-                await viewModel.loadTabs()
+            if books.isEmpty {
+                await loadBooks()
             }
-        }
-        .onReceive(tabDoubleTapPublisher) { _ in
-            triggerScrollToTop(for: viewModel.selectedTabId)
-        }
-        .onChange(of: viewModel.selectedTabId) { _, newValue in
-            syncPagerSelection(with: newValue)
-        }
-        .onChange(of: viewModel.tabs) { _, _ in
-            syncPagerSelection(with: viewModel.selectedTabId)
         }
     }
 
-    // MARK: - Content Builders
+    // MARK: - Content
 
     @ViewBuilder
-    private var bookstoreTabsContent: some View {
-        if viewModel.tabs.isEmpty {
+    private var booksContent: some View {
+        if isLoading && books.isEmpty {
             VStack(spacing: 16) {
-                if viewModel.isLoadingTabs {
-                    ProgressView()
-                    Text("common.loading".localized)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                } else {
-                    Image(systemName: "books.vertical")
-                        .font(.largeTitle)
-                        .foregroundColor(.secondary)
-                    Text("discover.empty".localized)
-                        .foregroundColor(.secondary)
-                }
+                ProgressView()
+                Text("common.loading".localized)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(40)
+        } else if books.isEmpty {
+            VStack(spacing: 16) {
+                Image(systemName: "books.vertical")
+                    .font(.largeTitle)
+                    .foregroundColor(.secondary)
+                Text("discover.empty".localized)
+                    .foregroundColor(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(40)
         } else {
-            TabView(selection: $pagerSelection) {
-                ForEach(Array(viewModel.tabs.enumerated()), id: \.element.id) { index, tab in
-                    BookstoreTabPage(
-                        tab: tab,
-                        viewModel: viewModel,
-                        scrollSignal: scrollSignals[tab.id, default: 0]
-                    )
-                    .tag(index)
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .animation(.interactiveSpring(), value: pagerSelection)
-            .onChange(of: pagerSelection) { _, newValue in
-                guard viewModel.tabs.indices.contains(newValue) else { return }
-                let tabId = viewModel.tabs[newValue].id
-                if viewModel.selectedTabId != tabId {
-                    Task {
-                        await viewModel.selectTab(tabId)
-                    }
-                } else {
-                    triggerScrollToTop(for: tabId)
-                }
-            }
-        }
-    }
-
-    private func triggerScrollToTop(for tabId: String) {
-        guard !tabId.isEmpty else { return }
-        scrollSignals[tabId, default: 0] += 1
-    }
-
-    private func syncPagerSelection(with tabId: String) {
-        guard let index = viewModel.tabs.firstIndex(where: { $0.id == tabId }) else { return }
-        if pagerSelection != index {
-            pagerSelection = index
-        }
-    }
-}
-
-// MARK: - Discover Tab Page
-
-private struct BookstoreTabPage: View {
-    let tab: BookstoreTab
-    @ObservedObject var viewModel: BookstoreViewModel
-    let scrollSignal: Int
-
-    @State private var scrollProxy: ScrollViewProxy?
-
-    var body: some View {
-        ScrollViewReader { proxy in
             ScrollView {
-                VStack(spacing: 0) {
-                    Color.clear
-                        .frame(height: 0)
-                        .id(scrollAnchor)
+                LazyVStack(spacing: 0) {
+                    // Total count header
+                    HStack {
+                        Text(String(format: "discover.totalBooks".localized, totalBooks))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
 
-                    tabContent
+                    ForEach(Array(books.enumerated()), id: \.element.id) { index, bookWithScore in
+                        BookstoreBookRow(bookWithScore: bookWithScore)
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
+
+                        if index < books.count - 1 {
+                            Divider()
+                                .padding(.horizontal)
+                        }
+                    }
+
+                    // Load more button
+                    if hasMore {
+                        Button {
+                            Task {
+                                await loadMoreBooks()
+                            }
+                        } label: {
+                            HStack {
+                                if isLoadingMore {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                } else {
+                                    Text("common.loadMore".localized)
+                                    Image(systemName: "arrow.down.circle")
+                                }
+                            }
+                            .foregroundColor(.accentColor)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                        }
+                        .disabled(isLoadingMore)
+                    }
                 }
                 .padding(.bottom)
             }
             .elegantRefreshable {
-                await viewModel.refreshTab(tabId: tab.id)
-            }
-            .onAppear {
-                scrollProxy = proxy
-                if viewModel.tabBooks[tab.id] == nil {
-                    viewModel.loadTabContent(tabId: tab.id)
-                }
-            }
-            .onChange(of: scrollSignal) { _, _ in
-                guard let scrollProxy else { return }
-                withAnimation(.easeOut(duration: 0.25)) {
-                    scrollProxy.scrollTo(scrollAnchor, anchor: .top)
-                }
+                await refreshBooks()
             }
         }
     }
 
-    private var scrollAnchor: String {
-        "scrollTop-\(tab.id)"
-    }
+    // MARK: - Data Loading
 
-    @ViewBuilder
-    private var tabContent: some View {
-        let books = viewModel.tabBooks[tab.id] ?? []
-        let isLoading = viewModel.tabLoadingStates[tab.id] ?? false
-        let hasMore = viewModel.tabHasMore[tab.id] ?? true
+    private func loadBooks() async {
+        guard !isLoading else { return }
+        isLoading = true
 
-        if viewModel.isLoadingTabs && books.isEmpty {
-            loadingView
-        } else if books.isEmpty && !isLoading {
-            emptyView
-        } else {
-            bookListView(
-                books: books,
-                hasMore: hasMore,
-                isLoading: isLoading
+        do {
+            let response = try await APIClient.shared.getBookstoreBooks(
+                categoryId: nil,  // nil = all books
+                page: 1,
+                pageSize: pageSize
             )
+            books = response.books
+            currentPage = 1
+            hasMore = response.hasMore
+            totalBooks = response.total
+        } catch {
+            LoggingService.shared.error(.books, "Failed to load books: \(error)")
         }
+
+        isLoading = false
     }
 
-    private var loadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-            Text("common.loading".localized)
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(40)
-    }
+    private func loadMoreBooks() async {
+        guard !isLoadingMore && hasMore else { return }
+        isLoadingMore = true
 
-    private var emptyView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "books.vertical")
-                .font(.largeTitle)
-                .foregroundColor(.secondary)
-            Text("discover.empty".localized)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(40)
-    }
-
-    @ViewBuilder
-    private func bookListView(
-        books: [BookWithScore],
-        hasMore: Bool,
-        isLoading: Bool
-    ) -> some View {
-        ForEach(Array(books.enumerated()), id: \.element.id) { index, bookWithScore in
-            BookstoreBookRow(bookWithScore: bookWithScore)
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-
-            if index < books.count - 1 {
-                Divider()
-                    .padding(.horizontal)
-            }
-        }
-
-        if hasMore {
-            Button {
-                Task {
-                    await viewModel.loadMoreBooks(for: tab.id)
-                }
-            } label: {
-                HStack {
-                    if isLoading {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                    } else {
-                        Text("common.loadMore".localized)
-                        Image(systemName: "arrow.down.circle")
-                    }
-                }
-                .foregroundColor(.accentColor)
-                .padding()
-                .frame(maxWidth: .infinity)
-            }
-        }
-    }
-}
-
-// MARK: - Book List Feed Card
-
-private struct BookListFeedCard: View {
-    let list: BookList
-
-    var body: some View {
-        NavigationLink {
-            BookListDetailView(bookListId: list.id)
-        } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                // Header with type badge
-                HStack {
-                    Image(systemName: list.type.icon)
-                        .foregroundColor(typeColor)
-                        .font(.title3)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(list.title)
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-
-                        HStack(spacing: 4) {
-                            Text(list.type.displayName)
-                                .font(.caption)
-                                .foregroundColor(typeColor)
-
-                            Text("•")
-                                .foregroundColor(.secondary)
-
-                            Text("discover.booksCount".localized(with: list.bookCount))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                // Book previews
-                if let books = list.books, !books.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(Array(books.prefix(6))) { book in
-                                BookListPreviewCover(book: book)
-                            }
-
-                            if books.count > 6 {
-                                VStack {
-                                    Text("+\(books.count - 6)")
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.secondary)
-                                }
-                                .frame(width: 50, height: 75)
-                                .background(Color(.systemGray5))
-                                .cornerRadius(6)
-                            }
-                        }
-                    }
-                }
-
-                // Description if available
-                if let description = list.description, !description.isEmpty {
-                    Text(description)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
-                }
-            }
-            .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var typeColor: Color {
-        switch list.type {
-        case .editorsPick: return .yellow
-        case .annualBest: return .orange
-        case .university: return .blue
-        case .celebrity: return .purple
-        case .ranking: return .red
-        case .collection: return .green
-        case .aiRecommended, .aiFeatured: return .cyan
-        case .personalized: return .pink
-        }
-    }
-}
-
-private struct BookListPreviewCover: View {
-    let book: Book
-
-    var body: some View {
-        if let coverUrl = book.coverUrl, let url = URL(string: coverUrl) {
-            KFImage(url)
-                .placeholder { _ in coverPlaceholder }
-                .fade(duration: 0.25)
-                .resizable()
-                .aspectRatio(2/3, contentMode: .fill)
-                .frame(width: 50, height: 75)
-                .cornerRadius(6)
-        } else {
-            coverPlaceholder
-        }
-    }
-
-    private var coverPlaceholder: some View {
-        Rectangle()
-            .fill(Color(.systemGray5))
-            .frame(width: 50, height: 75)
-            .cornerRadius(6)
-            .overlay(
-                Image(systemName: "book.closed.fill")
-                    .font(.caption)
-                    .foregroundColor(.gray)
+        do {
+            let nextPage = currentPage + 1
+            let response = try await APIClient.shared.getBookstoreBooks(
+                categoryId: nil,
+                page: nextPage,
+                pageSize: pageSize
             )
-    }
-}
-
-// MARK: - Book Feed Card
-
-private struct BookFeedCard: View {
-    let book: Book
-
-    var body: some View {
-        HStack(spacing: 12) {
-            // Cover
-            if let coverUrl = book.coverUrl, let url = URL(string: coverUrl) {
-                KFImage(url)
-                    .placeholder { _ in coverPlaceholder }
-                    .fade(duration: 0.25)
-                    .resizable()
-                    .aspectRatio(2/3, contentMode: .fill)
-                    .frame(width: 60, height: 90)
-                    .cornerRadius(8)
-            } else {
-                coverPlaceholder
-            }
-
-            // Info
-            VStack(alignment: .leading, spacing: 6) {
-                Text(book.localizedTitle)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .lineLimit(2)
-                    .foregroundColor(.primary)
-
-                Text(book.localizedAuthor)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-
-                HStack(spacing: 8) {
-                    // Genre tags (no difficulty badge in book lists)
-                    if !book.localizedGenres.isEmpty {
-                        Text(book.localizedGenres.prefix(2).joined(separator: ", "))
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
-
-                    #if DEBUG
-                    // Source badge (debug only)
-                    if let source = book.source, !source.isEmpty {
-                        Spacer(minLength: 4)
-                        SourceBadgeView(source: source)
-                    }
-                    #endif
-                }
-
-                // Book info summary (genres + word count + subjects)
-                let infoComponents = buildBookInfoComponents(book: book)
-                if !infoComponents.isEmpty {
-                    Text(infoComponents.joined(separator: " · "))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
-                }
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            books.append(contentsOf: response.books)
+            currentPage = nextPage
+            hasMore = response.hasMore
+        } catch {
+            LoggingService.shared.error(.books, "Failed to load more books: \(error)")
         }
-        .contentShape(Rectangle())
+
+        isLoadingMore = false
     }
 
-    private var coverPlaceholder: some View {
-        Rectangle()
-            .fill(Color(.systemGray5))
-            .frame(width: 60, height: 90)
-            .cornerRadius(8)
-            .overlay(
-                Image(systemName: "book.closed.fill")
-                    .foregroundColor(.gray)
+    private func refreshBooks() async {
+        currentPage = 1
+        hasMore = true
+
+        do {
+            let response = try await APIClient.shared.getBookstoreBooks(
+                categoryId: nil,
+                page: 1,
+                pageSize: pageSize
             )
-    }
-
-    /// Build book info components for display (genres + word count + subjects)
-    private func buildBookInfoComponents(book: Book) -> [String] {
-        var components: [String] = []
-
-        // Add first genre if available (already shown in tags, so skip if duplicated)
-        // We'll use subjects instead for more variety
-
-        // Add word count
-        if let wordCount = book.wordCount {
-            if wordCount >= 10000 {
-                let formatted = wordCount >= 10000 ? "\(wordCount / 10000)万字" : "\(wordCount)字"
-                components.append(formatted)
-            } else if wordCount >= 1000 {
-                components.append("\(wordCount / 1000)k words")
-            }
+            books = response.books
+            hasMore = response.hasMore
+            totalBooks = response.total
+        } catch {
+            LoggingService.shared.error(.books, "Failed to refresh books: \(error)")
         }
-
-        // Add subjects (first 2, excluding duplicates with genres)
-        if let subjects = book.subjects, !subjects.isEmpty {
-            let genreSet = Set((book.genres ?? []).map { $0.lowercased() })
-            let filteredSubjects = subjects
-                .filter { !genreSet.contains($0.lowercased()) }
-                .prefix(2)
-            if !filteredSubjects.isEmpty {
-                components.append(contentsOf: filteredSubjects)
-            }
-        }
-
-        return components
     }
 }
 
-// MARK: - Discover Book Row (with favorite button outside NavigationLink)
+// MARK: - Bookstore Book Row
 
 private struct BookstoreBookRow: View {
     let bookWithScore: BookWithScore
@@ -565,15 +256,10 @@ private struct BookstoreBookRow: View {
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    LoggingService.shared.debug(.books, "❤️ [BookstoreBookRow] Heart tapped! bookId: \(book.id)", component: "BookstoreView")
-                    LoggingService.shared.debug(.books, "❤️ [BookstoreBookRow] Current isFavorited: \(isFavorited)", component: "BookstoreView")
                     Task {
-                        LoggingService.shared.debug(.books, "❤️ [BookstoreBookRow] Calling toggleFavorite...", component: "BookstoreView")
                         let success = await favoritesManager.toggleFavorite(bookId: book.id)
-                        LoggingService.shared.debug(.books, "❤️ [BookstoreBookRow] toggleFavorite returned: \(success)", component: "BookstoreView")
                         if success {
                             isFavorited.toggle()
-                            LoggingService.shared.debug(.books, "❤️ [BookstoreBookRow] isFavorited toggled to: \(isFavorited)", component: "BookstoreView")
                         }
                     }
                 }
@@ -602,68 +288,6 @@ private struct BookstoreBookRow: View {
                 Image(systemName: "book.closed.fill")
                     .foregroundColor(.gray)
             )
-    }
-}
-
-// MARK: - Difficulty Tag
-
-private struct DifficultyTag: View {
-    let score: Double
-
-    var level: DifficultyLevel {
-        switch score {
-        case 0..<30: return .easy
-        case 30..<50: return .medium
-        case 50..<70: return .challenging
-        default: return .advanced
-        }
-    }
-
-    var body: some View {
-        Text(level.localizedName)
-            .font(.caption2)
-            .fontWeight(.medium)
-            .foregroundColor(level.color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 2)
-            .background(level.color.opacity(0.15))
-            .cornerRadius(4)
-    }
-}
-
-// MARK: - Difficulty Level Enum
-
-enum DifficultyLevel: String, CaseIterable {
-    case easy = "Easy"
-    case medium = "Medium"
-    case challenging = "Challenging"
-    case advanced = "Advanced"
-
-    var localizedName: String {
-        switch self {
-        case .easy: return "difficulty.easy".localized
-        case .medium: return "difficulty.medium".localized
-        case .challenging: return "difficulty.challenging".localized
-        case .advanced: return "difficulty.advanced".localized
-        }
-    }
-
-    var range: ClosedRange<Double> {
-        switch self {
-        case .easy: return 0...29
-        case .medium: return 30...49
-        case .challenging: return 50...69
-        case .advanced: return 70...100
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .easy: return .green
-        case .medium: return .blue
-        case .challenging: return .orange
-        case .advanced: return .red
-        }
     }
 }
 
@@ -904,6 +528,42 @@ struct DifficultyChip: View {
                 .padding(.vertical, 6)
                 .background(isSelected ? (level?.color ?? .blue) : (level?.color.opacity(0.15) ?? Color(.systemGray5)))
                 .cornerRadius(16)
+        }
+    }
+}
+
+// MARK: - Difficulty Level Enum
+
+enum DifficultyLevel: String, CaseIterable {
+    case easy = "Easy"
+    case medium = "Medium"
+    case challenging = "Challenging"
+    case advanced = "Advanced"
+
+    var localizedName: String {
+        switch self {
+        case .easy: return "difficulty.easy".localized
+        case .medium: return "difficulty.medium".localized
+        case .challenging: return "difficulty.challenging".localized
+        case .advanced: return "difficulty.advanced".localized
+        }
+    }
+
+    var range: ClosedRange<Double> {
+        switch self {
+        case .easy: return 0...29
+        case .medium: return 30...49
+        case .challenging: return 50...69
+        case .advanced: return 70...100
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .easy: return .green
+        case .medium: return .blue
+        case .challenging: return .orange
+        case .advanced: return .red
         }
     }
 }

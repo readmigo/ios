@@ -888,7 +888,7 @@ struct EmptyLibraryStateView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
 
-            NavigationLink(destination: DiscoverView()) {
+            NavigationLink(destination: BookstoreView()) {
                 Text("library.empty.discoverBooks".localized)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
@@ -1047,7 +1047,7 @@ struct GuestEmptyLibraryView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
 
-            NavigationLink(destination: DiscoverView()) {
+            NavigationLink(destination: BookstoreView()) {
                 Text("library.empty.discoverBooks".localized)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
@@ -1099,7 +1099,7 @@ struct GuestLoginPromptCard: View {
                     .cornerRadius(12)
             }
 
-            NavigationLink(destination: DiscoverView()) {
+            NavigationLink(destination: BookstoreView()) {
                 Text("library.guest.browseFirst".localized)
                     .font(.subheadline)
                     .foregroundColor(.textSecondary)

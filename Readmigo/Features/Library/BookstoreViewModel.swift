@@ -1,18 +1,18 @@
 import Foundation
 import SwiftUI
 
-// MARK: - Discover ViewModel
+// MARK: - Bookstore ViewModel
 
 @MainActor
-final class DiscoverViewModel: ObservableObject {
+final class BookstoreViewModel: ObservableObject {
     // MARK: - Singleton
 
-    static let shared = DiscoverViewModel()
+    static let shared = BookstoreViewModel()
 
     // MARK: - Published Properties
 
     /// Tabs from backend
-    @Published var tabs: [DiscoverTab] = []
+    @Published var tabs: [BookstoreTab] = []
 
     /// Currently selected tab ID
     @Published var selectedTabId: String = ""
@@ -62,7 +62,7 @@ final class DiscoverViewModel: ObservableObject {
     /// Sort tabs according to desired order
     /// - Parameter tabs: Tabs from backend
     /// - Returns: Sorted tabs with recommendation tab first, then categories in desired order
-    private func sortTabs(_ tabs: [DiscoverTab]) -> [DiscoverTab] {
+    private func sortTabs(_ tabs: [BookstoreTab]) -> [BookstoreTab] {
         return tabs.sorted { tab1, tab2 in
             // Recommendation tab always comes first
             if tab1.type == .recommendation && tab2.type != .recommendation {
@@ -93,7 +93,7 @@ final class DiscoverViewModel: ObservableObject {
     // MARK: - Computed Properties
 
     /// Currently selected tab
-    var selectedTab: DiscoverTab? {
+    var selectedTab: BookstoreTab? {
         tabs.first { $0.id == selectedTabId }
     }
 
@@ -117,7 +117,7 @@ final class DiscoverViewModel: ObservableObject {
     /// Load tabs - first from cache (instant), then refresh from network (background)
     func loadTabs() async {
         guard !isLoadingTabs else {
-            LoggingService.shared.debug(.books, "📋 loadTabs: skipped (already loading)", component: "DiscoverViewModel")
+            LoggingService.shared.debug(.books, "📋 loadTabs: skipped (already loading)", component: "BookstoreViewModel")
             return
         }
 
@@ -129,22 +129,22 @@ final class DiscoverViewModel: ObservableObject {
         // Step 2: Fetch from network in background to refresh data
         isLoadingTabs = true
         error = nil
-        LoggingService.shared.debug(.books, "📋 loadTabs: fetching from network", component: "DiscoverViewModel")
+        LoggingService.shared.debug(.books, "📋 loadTabs: fetching from network", component: "BookstoreViewModel")
 
         do {
-            let fetchedTabs = try await APIClient.shared.getDiscoverTabs()
+            let fetchedTabs = try await APIClient.shared.getBookstoreTabs()
             let sortedTabs = sortTabs(fetchedTabs)
 
             // Cache the tabs
-            await cacheService.set(sortedTabs, for: CacheKeys.discoverTabsKey(), ttl: .categories)
+            await cacheService.set(sortedTabs, for: CacheKeys.bookstoreTabsKey(), ttl: .categories)
 
             tabs = sortedTabs
-            LoggingService.shared.debug(.books, "📋 loadTabs: fetched \(fetchedTabs.count) tabs, sorted by custom order", component: "DiscoverViewModel")
+            LoggingService.shared.debug(.books, "📋 loadTabs: fetched \(fetchedTabs.count) tabs, sorted by custom order", component: "BookstoreViewModel")
 
             // Set default selected tab if not set
             if selectedTabId.isEmpty, let firstTab = tabs.first {
                 selectedTabId = firstTab.id
-                LoggingService.shared.debug(.books, "📋 loadTabs: selected first tab: \(firstTab.id)", component: "DiscoverViewModel")
+                LoggingService.shared.debug(.books, "📋 loadTabs: selected first tab: \(firstTab.id)", component: "BookstoreViewModel")
             }
 
             // Load content for selected tab (spawn independent task to prevent cancellation)
@@ -159,24 +159,24 @@ final class DiscoverViewModel: ObservableObject {
             if tabs.isEmpty {
                 self.error = error
             }
-            LoggingService.shared.debug(.books, "📋 loadTabs: FAILED - \(error)", component: "DiscoverViewModel")
-            LoggingService.shared.error(.books, "Failed to load discover tabs: \(error)")
+            LoggingService.shared.debug(.books, "📋 loadTabs: FAILED - \(error)", component: "BookstoreViewModel")
+            LoggingService.shared.error(.books, "Failed to load bookstore tabs: \(error)")
         }
 
         isLoadingTabs = false
-        LoggingService.shared.debug(.books, "📋 loadTabs: completed, tabs=\(tabs.count), selectedTabId=\(selectedTabId)", component: "DiscoverViewModel")
+        LoggingService.shared.debug(.books, "📋 loadTabs: completed, tabs=\(tabs.count), selectedTabId=\(selectedTabId)", component: "BookstoreViewModel")
     }
 
     /// Load data from persistent cache for instant startup
     private func loadFromCache() async {
-        LoggingService.shared.debug(.books, "Loading discover data from cache", component: "DiscoverViewModel")
+        LoggingService.shared.debug(.books, "Loading bookstore data from cache", component: "BookstoreViewModel")
 
-        let tabsCacheKey = CacheKeys.discoverTabsKey()
+        let tabsCacheKey = CacheKeys.bookstoreTabsKey()
 
         // Load cached tabs
-        if let cachedTabs: [DiscoverTab] = await cacheService.get(tabsCacheKey, type: [DiscoverTab].self) {
+        if let cachedTabs: [BookstoreTab] = await cacheService.get(tabsCacheKey, type: [BookstoreTab].self) {
             tabs = cachedTabs
-            LoggingService.shared.info(.books, "Loaded \(cachedTabs.count) tabs from cache", component: "DiscoverViewModel")
+            LoggingService.shared.info(.books, "Loaded \(cachedTabs.count) tabs from cache", component: "BookstoreViewModel")
 
             // Set default selected tab
             if selectedTabId.isEmpty, let firstTab = tabs.first {
@@ -187,19 +187,19 @@ final class DiscoverViewModel: ObservableObject {
             if !selectedTabId.isEmpty {
                 let tab = tabs.first { $0.id == selectedTabId }
                 let categoryId = tab?.categoryId
-                let cacheKey = CacheKeys.discoverBooksKey(categoryId: categoryId)
+                let cacheKey = CacheKeys.bookstoreBooksKey(categoryId: categoryId)
 
-                if let cachedBooks: DiscoverBooksResponse = await cacheService.get(cacheKey, type: DiscoverBooksResponse.self) {
+                if let cachedBooks: BookstoreBooksResponse = await cacheService.get(cacheKey, type: BookstoreBooksResponse.self) {
                     tabBooks[selectedTabId] = cachedBooks.books
                     tabCurrentPages[selectedTabId] = 1
                     tabHasMore[selectedTabId] = cachedBooks.hasMore
-                    LoggingService.shared.info(.books, "Loaded \(cachedBooks.books.count) books from cache for tab \(selectedTabId)", component: "DiscoverViewModel")
+                    LoggingService.shared.info(.books, "Loaded \(cachedBooks.books.count) books from cache for tab \(selectedTabId)", component: "BookstoreViewModel")
                 } else {
-                    LoggingService.shared.debug(.books, "No cached books found for tab \(selectedTabId)", component: "DiscoverViewModel")
+                    LoggingService.shared.debug(.books, "No cached books found for tab \(selectedTabId)", component: "BookstoreViewModel")
                 }
             }
         } else {
-            LoggingService.shared.debug(.books, "No cached tabs found", component: "DiscoverViewModel")
+            LoggingService.shared.debug(.books, "No cached tabs found", component: "BookstoreViewModel")
         }
 
         hasLoadedFromCache = true
@@ -207,7 +207,7 @@ final class DiscoverViewModel: ObservableObject {
 
     /// Select a tab and load its content if needed
     func selectTab(_ tabId: String) async {
-        LoggingService.shared.debug(.books, "📋 selectTab: called with tabId=\(tabId), current=\(selectedTabId)", component: "DiscoverViewModel")
+        LoggingService.shared.debug(.books, "📋 selectTab: called with tabId=\(tabId), current=\(selectedTabId)", component: "BookstoreViewModel")
 
         // Update selected tab ID for UI
         selectedTabId = tabId
@@ -216,7 +216,7 @@ final class DiscoverViewModel: ObservableObject {
         let existingBooks = tabBooks[tabId]
         let needsLoad = existingBooks == nil
 
-        LoggingService.shared.debug(.books, "📋 selectTab: existingBooks=\(existingBooks?.count ?? -1), needsLoad=\(needsLoad)", component: "DiscoverViewModel")
+        LoggingService.shared.debug(.books, "📋 selectTab: existingBooks=\(existingBooks?.count ?? -1), needsLoad=\(needsLoad)", component: "BookstoreViewModel")
 
         if needsLoad {
             // Spawn independent task to prevent cancellation when view disappears
@@ -238,12 +238,12 @@ final class DiscoverViewModel: ObservableObject {
     private func loadTabContentInternal(tabId: String) async {
         // Skip if already loading
         guard tabLoadingStates[tabId] != true else {
-            LoggingService.shared.debug(.books, "📚 loadTabContent: skipped (already loading for \(tabId))", component: "DiscoverViewModel")
+            LoggingService.shared.debug(.books, "📚 loadTabContent: skipped (already loading for \(tabId))", component: "BookstoreViewModel")
             return
         }
 
         tabLoadingStates[tabId] = true
-        LoggingService.shared.debug(.books, "📚 loadTabContent: started for tabId=\(tabId)", component: "DiscoverViewModel")
+        LoggingService.shared.debug(.books, "📚 loadTabContent: started for tabId=\(tabId)", component: "BookstoreViewModel")
 
         defer {
             tabLoadingStates[tabId] = false
@@ -252,22 +252,22 @@ final class DiscoverViewModel: ObservableObject {
 
         let tab = tabs.first { $0.id == tabId }
         let categoryId = tab?.categoryId
-        let cacheKey = CacheKeys.discoverBooksKey(categoryId: categoryId)
+        let cacheKey = CacheKeys.bookstoreBooksKey(categoryId: categoryId)
 
         // Try to load from cache first if we don't have data
         if tabBooks[tabId] == nil {
-            if let cachedBooks: DiscoverBooksResponse = await cacheService.get(cacheKey, type: DiscoverBooksResponse.self) {
+            if let cachedBooks: BookstoreBooksResponse = await cacheService.get(cacheKey, type: BookstoreBooksResponse.self) {
                 tabBooks[tabId] = cachedBooks.books
                 tabCurrentPages[tabId] = 1
                 tabHasMore[tabId] = cachedBooks.hasMore
-                LoggingService.shared.debug(.books, "📚 loadTabContent: loaded \(cachedBooks.books.count) books from cache for tab \(tabId)", component: "DiscoverViewModel")
+                LoggingService.shared.debug(.books, "📚 loadTabContent: loaded \(cachedBooks.books.count) books from cache for tab \(tabId)", component: "BookstoreViewModel")
             }
         }
 
         do {
-            LoggingService.shared.debug(.books, "📚 loadTabContent: fetching books for categoryId=\(categoryId ?? "nil")", component: "DiscoverViewModel")
+            LoggingService.shared.debug(.books, "📚 loadTabContent: fetching books for categoryId=\(categoryId ?? "nil")", component: "BookstoreViewModel")
 
-            let response = try await APIClient.shared.getDiscoverBooks(
+            let response = try await APIClient.shared.getBookstoreBooks(
                 categoryId: categoryId,
                 page: 1,
                 pageSize: pageSize
@@ -282,20 +282,20 @@ final class DiscoverViewModel: ObservableObject {
 
             // Check cover URLs
             let booksWithCovers = response.books.filter { $0.book.coverUrl != nil && !($0.book.coverUrl?.isEmpty ?? true) }
-            LoggingService.shared.debug(.books, "📚 loadTabContent: loaded \(response.books.count) books, \(booksWithCovers.count) with covers", component: "DiscoverViewModel")
+            LoggingService.shared.debug(.books, "📚 loadTabContent: loaded \(response.books.count) books, \(booksWithCovers.count) with covers", component: "BookstoreViewModel")
         } catch {
             // Ignore cancellation errors - they're expected when navigating away
             if Task.isCancelled {
-                LoggingService.shared.debug(.books, "📚 loadTabContent: cancelled (expected during navigation)", component: "DiscoverViewModel")
+                LoggingService.shared.debug(.books, "📚 loadTabContent: cancelled (expected during navigation)", component: "BookstoreViewModel")
                 return
             }
             // Only show error if we don't have cached data
             if tabBooks[tabId] == nil || tabBooks[tabId]?.isEmpty == true {
-                LoggingService.shared.debug(.books, "📚 loadTabContent: FAILED - \(error)", component: "DiscoverViewModel")
+                LoggingService.shared.debug(.books, "📚 loadTabContent: FAILED - \(error)", component: "BookstoreViewModel")
                 LoggingService.shared.error(.books, "Failed to load tab content: \(error)")
                 self.error = error
             } else {
-                LoggingService.shared.debug(.books, "📚 loadTabContent: network failed but using cached data", component: "DiscoverViewModel")
+                LoggingService.shared.debug(.books, "📚 loadTabContent: network failed but using cached data", component: "BookstoreViewModel")
             }
         }
     }
@@ -319,7 +319,7 @@ final class DiscoverViewModel: ObservableObject {
             let tab = tabs.first { $0.id == tabId }
             let categoryId = tab?.categoryId
 
-            let response = try await APIClient.shared.getDiscoverBooks(
+            let response = try await APIClient.shared.getBookstoreBooks(
                 categoryId: categoryId,
                 page: nextPage,
                 pageSize: pageSize
@@ -342,22 +342,22 @@ final class DiscoverViewModel: ObservableObject {
 
     /// Refresh current tab content
     func refresh() async {
-        LoggingService.shared.debug(.books, "🔄 refresh: called, tabs=\(tabs.count), selectedTabId=\(selectedTabId)", component: "DiscoverViewModel")
+        LoggingService.shared.debug(.books, "🔄 refresh: called, tabs=\(tabs.count), selectedTabId=\(selectedTabId)", component: "BookstoreViewModel")
 
         // If tabs are empty or selectedTabId is empty, reload everything
         if tabs.isEmpty || selectedTabId.isEmpty {
-            LoggingService.shared.debug(.books, "🔄 refresh: tabs empty or no selection, calling refreshAll()", component: "DiscoverViewModel")
+            LoggingService.shared.debug(.books, "🔄 refresh: tabs empty or no selection, calling refreshAll()", component: "BookstoreViewModel")
             await refreshAll()
             return
         }
 
         await refreshTab(tabId: selectedTabId)
-        LoggingService.shared.debug(.books, "🔄 refresh: completed, currentBooks=\(currentBooks.count)", component: "DiscoverViewModel")
+        LoggingService.shared.debug(.books, "🔄 refresh: completed, currentBooks=\(currentBooks.count)", component: "BookstoreViewModel")
     }
 
     /// Refresh all tabs
     func refreshAll() async {
-        LoggingService.shared.debug(.books, "🔄 refreshAll: started", component: "DiscoverViewModel")
+        LoggingService.shared.debug(.books, "🔄 refreshAll: started", component: "BookstoreViewModel")
 
         // Use withCheckedContinuation to spawn an independent task that won't be cancelled
         await withCheckedContinuation { continuation in
@@ -376,7 +376,7 @@ final class DiscoverViewModel: ObservableObject {
                 }
 
                 await self.loadTabs()
-                LoggingService.shared.debug(.books, "🔄 refreshAll: completed, tabs=\(self.tabs.count), currentBooks=\(self.currentBooks.count)", component: "DiscoverViewModel")
+                LoggingService.shared.debug(.books, "🔄 refreshAll: completed, tabs=\(self.tabs.count), currentBooks=\(self.currentBooks.count)", component: "BookstoreViewModel")
                 continuation.resume()
             }
         }

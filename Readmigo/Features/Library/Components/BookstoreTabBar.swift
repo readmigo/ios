@@ -1,9 +1,9 @@
 import SwiftUI
 
-// MARK: - Discover Tab Bar
+// MARK: - Bookstore Tab Bar
 
-struct DiscoverTabBar: View {
-    let tabs: [DiscoverTab]
+struct BookstoreTabBar: View {
+    let tabs: [BookstoreTab]
     @Binding var selectedTabId: String
     let onTabSelected: (String) -> Void
 
@@ -17,7 +17,7 @@ struct DiscoverTabBar: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(tabs) { tab in
-                        DiscoverTabItem(
+                        BookstoreTabItem(
                             tab: tab,
                             isSelected: tab.id == effectiveSelectedId
                         ) {
@@ -43,8 +43,8 @@ struct DiscoverTabBar: View {
 
 // MARK: - Tab Item
 
-private struct DiscoverTabItem: View {
-    let tab: DiscoverTab
+private struct BookstoreTabItem: View {
+    let tab: BookstoreTab
     let isSelected: Bool
     let action: () -> Void
 

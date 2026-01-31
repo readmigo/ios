@@ -1,19 +1,19 @@
 import Foundation
 
-// MARK: - Discover Tab Model
+// MARK: - Bookstore Tab Model
 
-/// Tab type for discover page
-enum DiscoverTabType: String, Codable {
+/// Tab type for bookstore page
+enum BookstoreTabType: String, Codable {
     case recommendation
     case category
 }
 
-/// Discover tab configuration from backend
-struct DiscoverTab: Codable, Identifiable, Equatable {
+/// Bookstore tab configuration from backend
+struct BookstoreTab: Codable, Identifiable, Equatable {
     let id: String
     let slug: String
     let name: String
-    let type: DiscoverTabType
+    let type: BookstoreTabType
     let categoryId: String?
     let icon: String?
     let sortOrder: Int
@@ -40,9 +40,9 @@ struct DiscoverTab: Codable, Identifiable, Equatable {
     }
 }
 
-/// Response wrapper for discover tabs
-struct DiscoverTabsResponse: Codable {
-    let tabs: [DiscoverTab]
+/// Response wrapper for bookstore tabs
+struct BookstoreTabsResponse: Codable {
+    let tabs: [BookstoreTab]
 }
 
 // MARK: - Book With Score
@@ -68,8 +68,8 @@ struct BookScores: Codable, Equatable {
     let freshness: Double
 }
 
-/// Response for discover books API
-struct DiscoverBooksResponse: Codable {
+/// Response for bookstore books API
+struct BookstoreBooksResponse: Codable {
     let books: [BookWithScore]
     let total: Int
     let page: Int
