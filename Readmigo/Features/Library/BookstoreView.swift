@@ -5,75 +5,65 @@ import Combine
 struct BookstoreView: View {
     @EnvironmentObject var libraryManager: LibraryManager
     @ObservedObject private var viewModel = BookstoreViewModel.shared
-    @StateObject private var searchHistoryManager = SearchHistoryManager.shared
-    @State private var searchText = ""
-    @State private var unifiedSearchResult: UnifiedSearchResponse?
-    @State private var isSearching = false
-    @State private var isSearchFocused = false
-    @State private var popularSearches: [PopularSearch] = []
-    // Autocomplete suggestions
-    @State private var suggestions: [SearchSuggestion] = []
-    @State private var isLoadingSuggestions = false
-    @State private var suggestionTask: Task<Void, Never>?
     // Tab paging & scroll-to-top coordination
     @State private var pagerSelection = 0
     @State private var scrollSignals: [String: Int] = [:]
+    @State private var showSearchView = false
     // Tab double-tap notification
     private let tabDoubleTapPublisher = NotificationCenter.default.publisher(for: .bookstoreTabDoubleTapped)
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Search Bar
-                SearchBar(
-                    text: $searchText,
-                    isFocused: $isSearchFocused,
-                    onSearch: performSearch,
-                    onTextChange: onSearchTextChange
-                )
+                // Search Bar (tap to navigate to search page)
+                Button {
+                    showSearchView = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.secondary)
+                        Text("search.placeholder".localized)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    .padding(12)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal)
                 .padding(.vertical, 8)
 
-                // Content: Search or Discover
-                if isSearchFocused || !searchText.isEmpty {
-                    // Search mode
-                    if !searchText.isEmpty && (isSearching || unifiedSearchResult != nil) {
-                        searchResultsContent
-                    } else {
-                        searchAssistContent
-                    }
-                } else {
-                    // Tab Bar (sticky, outside ScrollView)
-                    BookstoreTabBar(
-                            tabs: viewModel.tabs,
-                            selectedTabId: $viewModel.selectedTabId,
-                            onTabSelected: { tabId in
-                                // Align pager index with tapped tab
-                                if let index = viewModel.tabs.firstIndex(where: { $0.id == tabId }) {
-                                    pagerSelection = index
-                                }
-                                triggerScrollToTop(for: tabId)
-                                Task {
-                                    await viewModel.selectTab(tabId)
-                                }
+                // Tab Bar (sticky, outside ScrollView)
+                BookstoreTabBar(
+                        tabs: viewModel.tabs,
+                        selectedTabId: $viewModel.selectedTabId,
+                        onTabSelected: { tabId in
+                            // Align pager index with tapped tab
+                            if let index = viewModel.tabs.firstIndex(where: { $0.id == tabId }) {
+                                pagerSelection = index
                             }
-                        )
-                        .background(Color(.systemBackground))
+                            triggerScrollToTop(for: tabId)
+                            Task {
+                                await viewModel.selectTab(tabId)
+                            }
+                        }
+                    )
+                    .background(Color(.systemBackground))
 
-                    // Discover tabs content
-                    bookstoreTabsContent
-                }
+                // Discover tabs content
+                bookstoreTabsContent
             }
             .navigationTitle("tab.discover".localized)
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(isPresented: $showSearchView) {
+                BookstoreSearchView()
+            }
         }
         .task {
             // Load discover tabs
             if viewModel.tabs.isEmpty {
                 await viewModel.loadTabs()
-            }
-            // Load popular searches
-            if popularSearches.isEmpty {
-                await loadPopularSearches()
             }
         }
         .onReceive(tabDoubleTapPublisher) { _ in
@@ -87,112 +77,7 @@ struct BookstoreView: View {
         }
     }
 
-    // MARK: - Search Logic
-
-    private func performSearch() {
-        guard !searchText.isEmpty else {
-            unifiedSearchResult = nil
-            return
-        }
-
-        // Save to history
-        searchHistoryManager.addSearch(searchText)
-
-        isSearching = true
-        Task {
-            do {
-                unifiedSearchResult = try await APIClient.shared.unifiedSearch(
-                    query: searchText,
-                    limit: 5
-                )
-            } catch {
-                LoggingService.shared.debug(.books, "Search error: \(error)", component: "BookstoreView")
-                unifiedSearchResult = nil
-            }
-            isSearching = false
-        }
-    }
-
-    private func loadPopularSearches() async {
-        let cacheKey = CacheKeys.popularSearchesKey()
-        let cacheService = ResponseCacheService.shared
-
-        do {
-            popularSearches = try await APIClient.shared.getPopularSearches(limit: 8)
-            // Cache the response
-            await cacheService.set(popularSearches, for: cacheKey, ttl: .search)
-        } catch {
-            // Try to load from cache on network failure
-            if let cached: [PopularSearch] = await cacheService.get(cacheKey, type: [PopularSearch].self) {
-                popularSearches = cached
-                LoggingService.shared.info(.books, "Loaded popular searches from cache")
-            } else {
-                LoggingService.shared.debug(.books, "Failed to load popular searches: \(error)", component: "BookstoreView")
-            }
-        }
-    }
-
-    private func onSearchTextChange(_ text: String) {
-        // Cancel previous task
-        suggestionTask?.cancel()
-
-        // Clear suggestions if text is too short
-        guard text.count >= 2 else {
-            suggestions = []
-            return
-        }
-
-        // Debounce: wait 300ms before fetching suggestions
-        suggestionTask = Task {
-            do {
-                try await Task.sleep(nanoseconds: 300_000_000) // 300ms
-                guard !Task.isCancelled else { return }
-
-                await fetchSuggestions(for: text)
-            } catch {
-                // Task was cancelled, ignore
-            }
-        }
-    }
-
-    @MainActor
-    private func fetchSuggestions(for query: String) async {
-        isLoadingSuggestions = true
-        defer { isLoadingSuggestions = false }
-
-        do {
-            suggestions = try await APIClient.shared.getSearchSuggestions(query: query, limit: 5)
-        } catch {
-            LoggingService.shared.debug(.books, "Failed to fetch suggestions: \(error)", component: "BookstoreView")
-            suggestions = []
-        }
-    }
-
     // MARK: - Content Builders
-
-    @ViewBuilder
-    private var searchAssistContent: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                if !searchHistoryManager.history.isEmpty {
-                    SearchHistorySection(
-                        history: searchHistoryManager.history,
-                        onSelect: { query in
-                            searchText = query
-                            performSearch()
-                        },
-                        onRemove: { query in
-                            searchHistoryManager.removeSearch(query)
-                        },
-                        onClearAll: {
-                            searchHistoryManager.clearHistory()
-                        }
-                    )
-                }
-            }
-            .padding(.bottom)
-        }
-    }
 
     @ViewBuilder
     private var bookstoreTabsContent: some View {
@@ -238,35 +123,6 @@ struct BookstoreView: View {
                     triggerScrollToTop(for: tabId)
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private var searchResultsContent: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                if isSearching {
-                    ProgressView("search.searching".localized)
-                        .padding(40)
-                } else if let result = unifiedSearchResult {
-                    CategorizedSearchResultsSection(
-                        result: result,
-                        onAuthorTap: { _ in },
-                        onBookTap: { _ in },
-                        onQuoteTap: { _ in }
-                    )
-                } else {
-                    VStack(spacing: 16) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.largeTitle)
-                            .foregroundColor(.secondary)
-                        Text("search.noResults".localized)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(40)
-                }
-            }
-            .padding(.bottom)
         }
     }
 
