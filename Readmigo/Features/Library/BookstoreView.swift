@@ -11,6 +11,7 @@ struct BookstoreView: View {
     @State private var isLoadingMore = false
     @State private var hasMore = true
     @State private var currentPage = 1
+    @State private var loadMoreError = false
     private let pageSize = 20
 
     var body: some View {
@@ -81,6 +82,14 @@ struct BookstoreView: View {
                         BookstoreBookRow(bookWithScore: bookWithScore)
                             .padding(.horizontal)
                             .padding(.vertical, 8)
+                            .onAppear {
+                                // Auto-load more when reaching last item
+                                if index == books.count - 1 && hasMore && !isLoadingMore && !loadMoreError {
+                                    Task {
+                                        await loadMoreBooks()
+                                    }
+                                }
+                            }
 
                         if index < books.count - 1 {
                             Divider()
@@ -88,27 +97,9 @@ struct BookstoreView: View {
                         }
                     }
 
-                    // Load more button
+                    // Load more indicator / retry button
                     if hasMore {
-                        Button {
-                            Task {
-                                await loadMoreBooks()
-                            }
-                        } label: {
-                            HStack {
-                                if isLoadingMore {
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                } else {
-                                    Text("common.loadMore".localized)
-                                    Image(systemName: "arrow.down.circle")
-                                }
-                            }
-                            .foregroundColor(.accentColor)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                        }
-                        .disabled(isLoadingMore)
+                        loadMoreView
                     }
                 }
                 .padding(.bottom)
@@ -116,6 +107,38 @@ struct BookstoreView: View {
             .elegantRefreshable {
                 await refreshBooks()
             }
+        }
+    }
+
+    // MARK: - Load More View
+
+    @ViewBuilder
+    private var loadMoreView: some View {
+        if loadMoreError {
+            // Retry button on error
+            Button {
+                loadMoreError = false
+                Task {
+                    await loadMoreBooks()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.clockwise")
+                    Text("common.retry".localized)
+                }
+                .foregroundColor(.accentColor)
+                .padding()
+                .frame(maxWidth: .infinity)
+            }
+        } else if isLoadingMore {
+            // Loading indicator
+            ProgressView()
+                .padding()
+                .frame(maxWidth: .infinity)
+        } else {
+            // Spacer for auto-load trigger area
+            Color.clear
+                .frame(height: 1)
         }
     }
 
@@ -142,7 +165,7 @@ struct BookstoreView: View {
     }
 
     private func loadMoreBooks() async {
-        guard !isLoadingMore && hasMore else { return }
+        guard !isLoadingMore && hasMore && !loadMoreError else { return }
         isLoadingMore = true
 
         do {
@@ -157,6 +180,7 @@ struct BookstoreView: View {
             hasMore = response.hasMore
         } catch {
             LoggingService.shared.error(.books, "Failed to load more books: \(error)")
+            loadMoreError = true
         }
 
         isLoadingMore = false
@@ -165,6 +189,7 @@ struct BookstoreView: View {
     private func refreshBooks() async {
         currentPage = 1
         hasMore = true
+        loadMoreError = false
 
         do {
             let response = try await APIClient.shared.getBookstoreBooks(
