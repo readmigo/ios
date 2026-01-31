@@ -61,6 +61,31 @@ git commit -m "chore: bump version to X.Y.Z (YYYYMMDD)"
 git push
 ```
 
+### Step 6: 在 App Store Connect 发布
+
+上传完成后，前往 App Store Connect 提交审核：
+
+**操作链接：**
+- App Store Connect: https://appstoreconnect.apple.com/apps/6740539519/appstore
+
+**发布步骤：**
+
+1. 打开上方链接，进入 App Store 页面
+2. 点击左侧版本号（如 "2.0.1 准备提交"）
+3. 在 "构建版本" 区域点击 "+" 选择刚上传的 Build
+4. 填写 "此版本的新增内容"（更新说明）
+5. 点击右上角 "添加以供审核"
+6. 确认提交信息，点击 "提交至 App 审核"
+
+**审核状态查看：**
+- TestFlight: https://appstoreconnect.apple.com/apps/6740539519/testflight
+- 审核状态: https://appstoreconnect.apple.com/apps/6740539519/appstore
+
+**常用更新说明模板：**
+```
+Bug 修复和性能优化
+```
+
 ## 完整命令（一键执行）
 
 ```bash
@@ -130,6 +155,12 @@ git push
 ┌─────────────────┐
 │  提交 Git       │
 │  commit & push  │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  App Store 发布 │
+│  提交审核       │
 └─────────────────┘
 ```
 
