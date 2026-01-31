@@ -81,10 +81,49 @@ git push
 - TestFlight: https://appstoreconnect.apple.com/apps/6740539519/testflight
 - 审核状态: https://appstoreconnect.apple.com/apps/6740539519/appstore
 
-**常用更新说明模板：**
+**更新说明模板：**
+
+通用模板（适用于小版本更新）：
 ```
 Bug 修复和性能优化
 ```
+
+功能更新模板：
+```
+• 新增 [功能名称]
+• 优化 [优化内容]
+• 修复 [问题描述]
+```
+
+中英双语模板：
+```
+【中文】
+• 新增 xxx 功能
+• 优化 xxx 体验
+• 修复已知问题
+
+【English】
+• Added xxx feature
+• Improved xxx experience
+• Bug fixes
+```
+
+**文案撰写规范：**
+
+| 规则 | 说明 |
+|------|------|
+| 简洁明了 | 每条不超过 20 字 |
+| 用户视角 | 描述用户能感知的变化 |
+| 避免技术术语 | 用通俗语言描述 |
+| 突出重点 | 重要功能放前面 |
+
+**常用动词：**
+
+| 类型 | 中文 | English |
+|------|------|---------|
+| 新功能 | 新增、支持 | Added, Introduced |
+| 优化 | 优化、提升、改进 | Improved, Enhanced, Optimized |
+| 修复 | 修复、解决 | Fixed, Resolved |
 
 ## 完整命令（一键执行）
 
