@@ -11,7 +11,6 @@ struct BookstoreView: View {
     @State private var isLoadingMore = false
     @State private var hasMore = true
     @State private var currentPage = 1
-    @State private var totalBooks = 0
     private let pageSize = 20
 
     var body: some View {
@@ -78,16 +77,6 @@ struct BookstoreView: View {
         } else {
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    // Total count header
-                    HStack {
-                        Text(String(format: "discover.totalBooks".localized, totalBooks))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                    }
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-
                     ForEach(Array(books.enumerated()), id: \.element.id) { index, bookWithScore in
                         BookstoreBookRow(bookWithScore: bookWithScore)
                             .padding(.horizontal)
@@ -145,7 +134,6 @@ struct BookstoreView: View {
             books = response.books
             currentPage = 1
             hasMore = response.hasMore
-            totalBooks = response.total
         } catch {
             LoggingService.shared.error(.books, "Failed to load books: \(error)")
         }
@@ -186,7 +174,6 @@ struct BookstoreView: View {
             )
             books = response.books
             hasMore = response.hasMore
-            totalBooks = response.total
         } catch {
             LoggingService.shared.error(.books, "Failed to refresh books: \(error)")
         }

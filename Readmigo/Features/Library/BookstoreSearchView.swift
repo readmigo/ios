@@ -7,7 +7,6 @@ struct BookstoreSearchView: View {
     @State private var searchText = ""
     @State private var unifiedSearchResult: UnifiedSearchResponse?
     @State private var isSearching = false
-    @State private var popularSearches: [PopularSearch] = []
     @State private var suggestions: [SearchSuggestion] = []
     @State private var isLoadingSuggestions = false
     @State private var suggestionTask: Task<Void, Never>?
@@ -32,9 +31,6 @@ struct BookstoreSearchView: View {
         .navigationBarHidden(true)
         .onAppear {
             isSearchFieldFocused = true
-            Task {
-                await loadPopularSearches()
-            }
         }
     }
 
@@ -109,20 +105,6 @@ struct BookstoreSearchView: View {
                 unifiedSearchResult = nil
             }
             isSearching = false
-        }
-    }
-
-    private func loadPopularSearches() async {
-        let cacheKey = CacheKeys.popularSearchesKey()
-        let cacheService = ResponseCacheService.shared
-
-        do {
-            popularSearches = try await APIClient.shared.getPopularSearches(limit: 8)
-            await cacheService.set(popularSearches, for: cacheKey, ttl: .search)
-        } catch {
-            if let cached: [PopularSearch] = await cacheService.get(cacheKey, type: [PopularSearch].self) {
-                popularSearches = cached
-            }
         }
     }
 
@@ -216,11 +198,6 @@ struct BookstoreSearchView: View {
                 if !searchHistoryManager.history.isEmpty {
                     searchHistorySection
                 }
-
-                // Popular Searches
-                if !popularSearches.isEmpty {
-                    popularSearchesSection
-                }
             }
             .padding(.bottom)
         }
@@ -278,61 +255,6 @@ struct BookstoreSearchView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 8)
             }
-        }
-    }
-
-    private var popularSearchesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "flame.fill")
-                    .foregroundColor(.orange)
-                Text("search.popular".localized)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal)
-            .padding(.top, 16)
-
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 8) {
-                ForEach(Array(popularSearches.enumerated()), id: \.element.id) { index, search in
-                    Button {
-                        searchText = search.term
-                        performSearch()
-                    } label: {
-                        HStack {
-                            Text("\(index + 1)")
-                                .font(.caption.bold())
-                                .foregroundColor(rankColor(for: index + 1))
-                                .frame(width: 20)
-                            Text(search.term)
-                                .font(.subheadline)
-                                .foregroundColor(.primary)
-                                .lineLimit(1)
-                            Spacer()
-                        }
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 12)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal)
-        }
-        .padding(.bottom, 16)
-    }
-
-    private func rankColor(for rank: Int) -> Color {
-        switch rank {
-        case 1: return .red
-        case 2: return .orange
-        case 3: return .yellow
-        default: return .gray
         }
     }
 
