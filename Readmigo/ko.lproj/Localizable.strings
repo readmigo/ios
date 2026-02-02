@@ -1,0 +1,27 @@
+/* Common */
+"common.cancel" = "취소";
+"common.delete" = "삭제";
+"common.done" = "완료";
+
+/* Audiobook */
+"audiobook.cached" = "캐시됨";
+"audiobook.chapters" = "챕터";
+"audiobook.deleteAll" = "모두 삭제";
+"audiobook.deleteAllConfirmation" = "다운로드한 모든 오디오북을 삭제하시겠습니까?";
+"audiobook.deleteAllDownloads" = "모든 다운로드 삭제";
+"audiobook.deleteDownloadConfirmation" = "이 다운로드를 삭제하시겠습니까?";
+"audiobook.downloaded" = "다운로드됨";
+"audiobook.downloadedAudiobooks" = "다운로드한 오디오북";
+"audiobook.downloading" = "다운로드 중";
+"audiobook.downloads" = "다운로드";
+"audiobook.noDownloads" = "다운로드 없음";
+"audiobook.noDownloadsDescription" = "오프라인 청취를 위해 오디오북 다운로드";
+"audiobook.storage" = "저장공간";
+"audiobook.storageWarning" = "저장공간 부족";
+
+/* Profile Gender */
+"profile.gender.female" = "여성";
+"profile.gender.male" = "남성";
+"profile.gender.other" = "기타";
+"profile.gender.prefer_not_to_say" = "응답하지 않음";
+"profile.gender.unknown" = "알 수 없음";

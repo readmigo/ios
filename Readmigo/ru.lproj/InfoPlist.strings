@@ -1,0 +1,8 @@
+/* Localized app name for Russian */
+"CFBundleDisplayName" = "Readmigo";
+"CFBundleName" = "Readmigo";
+
+/* Privacy permission descriptions */
+"NSMicrophoneUsageDescription" = "Readmigo требуется доступ к вашему микрофону для голосовых разговоров с авторами ИИ и практики чтения.";
+"NSSpeechRecognitionUsageDescription" = "Readmigo использует распознавание речи для транскрибирования вашего голоса во время практики чтения и голосовых разговоров.";
+"NSPhotoLibraryUsageDescription" = "Readmigo требуется доступ к вашей библиотеке фотографий для добавления изображений в сообщения.";

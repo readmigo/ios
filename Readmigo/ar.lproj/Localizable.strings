@@ -1,0 +1,27 @@
+/* Common */
+"common.cancel" = "إلغاء";
+"common.delete" = "حذف";
+"common.done" = "تم";
+
+/* Audiobook */
+"audiobook.cached" = "مخزن مؤقتاً";
+"audiobook.chapters" = "فصول";
+"audiobook.deleteAll" = "حذف الكل";
+"audiobook.deleteAllConfirmation" = "هل تريد حذف جميع الكتب الصوتية المحملة؟";
+"audiobook.deleteAllDownloads" = "حذف جميع التنزيلات";
+"audiobook.deleteDownloadConfirmation" = "هل تريد حذف هذا التنزيل؟";
+"audiobook.downloaded" = "تم التنزيل";
+"audiobook.downloadedAudiobooks" = "الكتب الصوتية المحملة";
+"audiobook.downloading" = "جاري التنزيل";
+"audiobook.downloads" = "التنزيلات";
+"audiobook.noDownloads" = "لا توجد تنزيلات";
+"audiobook.noDownloadsDescription" = "قم بتنزيل الكتب الصوتية للاستماع دون اتصال";
+"audiobook.storage" = "التخزين";
+"audiobook.storageWarning" = "مساحة تخزين منخفضة";
+
+/* Profile Gender */
+"profile.gender.female" = "أنثى";
+"profile.gender.male" = "ذكر";
+"profile.gender.other" = "آخر";
+"profile.gender.prefer_not_to_say" = "أفضل عدم الإفصاح";
+"profile.gender.unknown" = "غير معروف";

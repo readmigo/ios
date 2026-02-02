@@ -1,0 +1,8 @@
+/* Localized app name for Arabic */
+"CFBundleDisplayName" = "Readmigo";
+"CFBundleName" = "Readmigo";
+
+/* Privacy permission descriptions */
+"NSMicrophoneUsageDescription" = "يحتاج Readmigo إلى الوصول إلى الميكروفون للمحادثات الصوتية مع مؤلفي الذكاء الاصطناعي وممارسة القراءة.";
+"NSSpeechRecognitionUsageDescription" = "يستخدم Readmigo التعرف على الكلام لنسخ صوتك أثناء ممارسة القراءة والمحادثات الصوتية.";
+"NSPhotoLibraryUsageDescription" = "يحتاج Readmigo إلى الوصول إلى مكتبة الصور الخاصة بك لإضافة مرفقات الصور في الرسائل.";

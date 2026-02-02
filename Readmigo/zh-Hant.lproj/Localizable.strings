@@ -1,0 +1,27 @@
+/* Common */
+"common.cancel" = "取消";
+"common.delete" = "刪除";
+"common.done" = "完成";
+
+/* Audiobook */
+"audiobook.cached" = "已緩存";
+"audiobook.chapters" = "章節";
+"audiobook.deleteAll" = "全部刪除";
+"audiobook.deleteAllConfirmation" = "刪除所有已下載的有聲書？";
+"audiobook.deleteAllDownloads" = "刪除全部下載";
+"audiobook.deleteDownloadConfirmation" = "刪除此下載？";
+"audiobook.downloaded" = "已下載";
+"audiobook.downloadedAudiobooks" = "已下載的有聲書";
+"audiobook.downloading" = "下載中";
+"audiobook.downloads" = "下載";
+"audiobook.noDownloads" = "無下載";
+"audiobook.noDownloadsDescription" = "下載有聲書以供離線收聽";
+"audiobook.storage" = "儲存";
+"audiobook.storageWarning" = "儲存空間不足";
+
+/* Profile Gender */
+"profile.gender.female" = "女";
+"profile.gender.male" = "男";
+"profile.gender.other" = "其他";
+"profile.gender.prefer_not_to_say" = "不願透露";
+"profile.gender.unknown" = "未知";

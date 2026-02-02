@@ -1,0 +1,27 @@
+/* Common */
+"common.cancel" = "キャンセル";
+"common.delete" = "削除";
+"common.done" = "完了";
+
+/* Audiobook */
+"audiobook.cached" = "キャッシュ済み";
+"audiobook.chapters" = "章";
+"audiobook.deleteAll" = "すべて削除";
+"audiobook.deleteAllConfirmation" = "ダウンロードしたオーディオブックをすべて削除しますか？";
+"audiobook.deleteAllDownloads" = "すべてのダウンロードを削除";
+"audiobook.deleteDownloadConfirmation" = "このダウンロードを削除しますか？";
+"audiobook.downloaded" = "ダウンロード済み";
+"audiobook.downloadedAudiobooks" = "ダウンロード済みオーディオブック";
+"audiobook.downloading" = "ダウンロード中";
+"audiobook.downloads" = "ダウンロード";
+"audiobook.noDownloads" = "ダウンロードなし";
+"audiobook.noDownloadsDescription" = "オフライン再生用にオーディオブックをダウンロード";
+"audiobook.storage" = "ストレージ";
+"audiobook.storageWarning" = "ストレージ不足";
+
+/* Profile Gender */
+"profile.gender.female" = "女性";
+"profile.gender.male" = "男性";
+"profile.gender.other" = "その他";
+"profile.gender.prefer_not_to_say" = "回答しない";
+"profile.gender.unknown" = "不明";

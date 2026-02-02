@@ -1,0 +1,27 @@
+/* Common */
+"common.cancel" = "Annuler";
+"common.delete" = "Supprimer";
+"common.done" = "Terminé";
+
+/* Audiobook */
+"audiobook.cached" = "En cache";
+"audiobook.chapters" = "chapitres";
+"audiobook.deleteAll" = "Tout supprimer";
+"audiobook.deleteAllConfirmation" = "Supprimer tous les livres audio téléchargés ?";
+"audiobook.deleteAllDownloads" = "Supprimer tous les téléchargements";
+"audiobook.deleteDownloadConfirmation" = "Supprimer ce téléchargement ?";
+"audiobook.downloaded" = "Téléchargé";
+"audiobook.downloadedAudiobooks" = "Livres audio téléchargés";
+"audiobook.downloading" = "Téléchargement";
+"audiobook.downloads" = "Téléchargements";
+"audiobook.noDownloads" = "Aucun téléchargement";
+"audiobook.noDownloadsDescription" = "Téléchargez des livres audio pour une écoute hors ligne";
+"audiobook.storage" = "Stockage";
+"audiobook.storageWarning" = "Stockage faible";
+
+/* Profile Gender */
+"profile.gender.female" = "Femme";
+"profile.gender.male" = "Homme";
+"profile.gender.other" = "Autre";
+"profile.gender.prefer_not_to_say" = "Préfère ne pas dire";
+"profile.gender.unknown" = "Inconnu";

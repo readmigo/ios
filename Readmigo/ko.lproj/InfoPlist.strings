@@ -1,0 +1,8 @@
+/* Localized app name for Korean */
+"CFBundleDisplayName" = "Readmigo";
+"CFBundleName" = "Readmigo";
+
+/* Privacy permission descriptions */
+"NSMicrophoneUsageDescription" = "Readmigo는 AI 저자와의 음성 대화 및 읽기 연습을 위해 마이크 접근이 필요합니다.";
+"NSSpeechRecognitionUsageDescription" = "Readmigo는 읽기 연습 및 음성 대화 중 음성을 텍스트로 변환하기 위해 음성 인식을 사용합니다.";
+"NSPhotoLibraryUsageDescription" = "Readmigo는 메시지에 이미지 첨부 파일을 추가하기 위해 사진 라이브러리 접근이 필요합니다.";

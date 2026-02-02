@@ -1,0 +1,8 @@
+/* Localized app name for English */
+"CFBundleDisplayName" = "Readmigo";
+"CFBundleName" = "Readmigo";
+
+/* Privacy permission descriptions */
+"NSMicrophoneUsageDescription" = "Readmigo needs access to your microphone for AI author voice conversations and reading practice.";
+"NSSpeechRecognitionUsageDescription" = "Readmigo uses speech recognition to transcribe your voice during reading practice and voice conversations.";
+"NSPhotoLibraryUsageDescription" = "Readmigo needs access to your photo library to add image attachments in messages.";

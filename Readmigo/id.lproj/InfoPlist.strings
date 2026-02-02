@@ -1,0 +1,8 @@
+/* Localized app name for Indonesian */
+"CFBundleDisplayName" = "Readmigo";
+"CFBundleName" = "Readmigo";
+
+/* Privacy permission descriptions */
+"NSMicrophoneUsageDescription" = "Readmigo memerlukan akses ke mikrofon Anda untuk percakapan suara dengan penulis AI dan latihan membaca.";
+"NSSpeechRecognitionUsageDescription" = "Readmigo menggunakan pengenalan ucapan untuk menyalin suara Anda selama latihan membaca dan percakapan suara.";
+"NSPhotoLibraryUsageDescription" = "Readmigo memerlukan akses ke pustaka foto Anda untuk menambahkan lampiran gambar dalam pesan.";

@@ -1,0 +1,27 @@
+/* Common */
+"common.cancel" = "Batal";
+"common.delete" = "Hapus";
+"common.done" = "Selesai";
+
+/* Audiobook */
+"audiobook.cached" = "Tersimpan";
+"audiobook.chapters" = "bab";
+"audiobook.deleteAll" = "Hapus Semua";
+"audiobook.deleteAllConfirmation" = "Hapus semua buku audio yang diunduh?";
+"audiobook.deleteAllDownloads" = "Hapus Semua Unduhan";
+"audiobook.deleteDownloadConfirmation" = "Hapus unduhan ini?";
+"audiobook.downloaded" = "Diunduh";
+"audiobook.downloadedAudiobooks" = "Buku Audio yang Diunduh";
+"audiobook.downloading" = "Mengunduh";
+"audiobook.downloads" = "Unduhan";
+"audiobook.noDownloads" = "Tidak Ada Unduhan";
+"audiobook.noDownloadsDescription" = "Unduh buku audio untuk mendengarkan secara offline";
+"audiobook.storage" = "Penyimpanan";
+"audiobook.storageWarning" = "Penyimpanan Rendah";
+
+/* Profile Gender */
+"profile.gender.female" = "Perempuan";
+"profile.gender.male" = "Laki-laki";
+"profile.gender.other" = "Lainnya";
+"profile.gender.prefer_not_to_say" = "Lebih suka tidak menjawab";
+"profile.gender.unknown" = "Tidak diketahui";

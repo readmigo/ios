@@ -6,6 +6,14 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     case english = "en"
     case chineseSimplified = "zh-Hans"
     case chineseTraditional = "zh-Hant"
+    case spanish = "es"
+    case arabic = "ar"
+    case portuguese = "pt"
+    case indonesian = "id"
+    case french = "fr"
+    case japanese = "ja"
+    case russian = "ru"
+    case korean = "ko"
 
     var id: String { rawValue }
 
@@ -17,6 +25,22 @@ enum AppLanguage: String, CaseIterable, Identifiable {
             return "简体中文"
         case .chineseTraditional:
             return "繁體中文"
+        case .spanish:
+            return "Español"
+        case .arabic:
+            return "العربية"
+        case .portuguese:
+            return "Português"
+        case .indonesian:
+            return "Bahasa Indonesia"
+        case .french:
+            return "Français"
+        case .japanese:
+            return "日本語"
+        case .russian:
+            return "Русский"
+        case .korean:
+            return "한국어"
         }
     }
 
@@ -28,6 +52,22 @@ enum AppLanguage: String, CaseIterable, Identifiable {
             return "🇨🇳"
         case .chineseTraditional:
             return "🇹🇼"
+        case .spanish:
+            return "🇪🇸"
+        case .arabic:
+            return "🇸🇦"
+        case .portuguese:
+            return "🇵🇹"
+        case .indonesian:
+            return "🇮🇩"
+        case .french:
+            return "🇫🇷"
+        case .japanese:
+            return "🇯🇵"
+        case .russian:
+            return "🇷🇺"
+        case .korean:
+            return "🇰🇷"
         }
     }
 
@@ -40,6 +80,22 @@ enum AppLanguage: String, CaseIterable, Identifiable {
             return "zh-Hans"
         case .chineseTraditional:
             return "zh-Hant"
+        case .spanish:
+            return "es"
+        case .arabic:
+            return "ar"
+        case .portuguese:
+            return "pt"
+        case .indonesian:
+            return "id"
+        case .french:
+            return "fr"
+        case .japanese:
+            return "ja"
+        case .russian:
+            return "ru"
+        case .korean:
+            return "ko"
         }
     }
 }
@@ -92,6 +148,22 @@ class LocalizationManager: ObservableObject {
                 return .chineseSimplified
             } else if language.hasPrefix("en") {
                 return .english
+            } else if language.hasPrefix("es") {
+                return .spanish
+            } else if language.hasPrefix("ar") {
+                return .arabic
+            } else if language.hasPrefix("pt") {
+                return .portuguese
+            } else if language.hasPrefix("id") {
+                return .indonesian
+            } else if language.hasPrefix("fr") {
+                return .french
+            } else if language.hasPrefix("ja") {
+                return .japanese
+            } else if language.hasPrefix("ru") {
+                return .russian
+            } else if language.hasPrefix("ko") {
+                return .korean
             }
         }
 

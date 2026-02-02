@@ -1,0 +1,27 @@
+/* Common */
+"common.cancel" = "Отмена";
+"common.delete" = "Удалить";
+"common.done" = "Готово";
+
+/* Audiobook */
+"audiobook.cached" = "В кэше";
+"audiobook.chapters" = "главы";
+"audiobook.deleteAll" = "Удалить всё";
+"audiobook.deleteAllConfirmation" = "Удалить все загруженные аудиокниги?";
+"audiobook.deleteAllDownloads" = "Удалить все загрузки";
+"audiobook.deleteDownloadConfirmation" = "Удалить эту загрузку?";
+"audiobook.downloaded" = "Загружено";
+"audiobook.downloadedAudiobooks" = "Загруженные аудиокниги";
+"audiobook.downloading" = "Загрузка";
+"audiobook.downloads" = "Загрузки";
+"audiobook.noDownloads" = "Нет загрузок";
+"audiobook.noDownloadsDescription" = "Загружайте аудиокниги для прослушивания офлайн";
+"audiobook.storage" = "Хранилище";
+"audiobook.storageWarning" = "Мало места";
+
+/* Profile Gender */
+"profile.gender.female" = "Женщина";
+"profile.gender.male" = "Мужчина";
+"profile.gender.other" = "Другое";
+"profile.gender.prefer_not_to_say" = "Предпочитаю не говорить";
+"profile.gender.unknown" = "Неизвестно";
