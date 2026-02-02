@@ -50,6 +50,11 @@ When investigating problems, output using this template:
 修复的方案：xxx
 ```
 
+## Script Management
+
+- 临时脚本使用完毕后必须删除，避免脚本数量膨胀
+- 不创建一次性检查脚本，改用 Claude 直接分析和处理
+
 ## Online Services
 
 | Platform | URL |

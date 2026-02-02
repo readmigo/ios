@@ -1374,6 +1374,16 @@
 			knownRegions = (
 				en,
 				Base,
+				"zh-Hans",
+				"zh-Hant",
+				es,
+				ar,
+				pt,
+				id,
+				fr,
+				ja,
+				ru,
+				ko,
 			);
 			mainGroup = 2552A2EC9670467B80E00807;
 			packageReferences = (
@@ -1693,7 +1703,7 @@
 				CODE_SIGN_ENTITLEMENTS = Readmigo/Readmigo.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20260131;
+				CURRENT_PROJECT_VERSION = 20260202;
 				DEVELOPMENT_TEAM = PL8T627ZTX;
 				GENERATE_INFOPLIST_FILE = NO;
 				GOOGLE_CLIENT_ID = "117628780266-qf66adblv3iacpepmgtpugp9bu5bba0e.apps.googleusercontent.com";
@@ -1708,7 +1718,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.2;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.readmigo.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1780,7 +1790,7 @@
 				CODE_SIGN_ENTITLEMENTS = Readmigo/Readmigo.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20260131;
+				CURRENT_PROJECT_VERSION = 20260202;
 				DEVELOPMENT_TEAM = PL8T627ZTX;
 				GENERATE_INFOPLIST_FILE = NO;
 				GOOGLE_CLIENT_ID = "117628780266-qf66adblv3iacpepmgtpugp9bu5bba0e.apps.googleusercontent.com";
@@ -1795,7 +1805,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.2;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.readmigo.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
