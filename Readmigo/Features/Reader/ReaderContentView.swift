@@ -243,15 +243,25 @@ struct ReaderContentView: UIViewRepresentable {
                     margin: 0 0 1em 0;
                 }
 
-                h1, h2, h3, h4, h5, h6 {
+                h1, h2, h3, h4, h5, h6, hgroup {
                     color: var(--text-color);
-                    margin-top: 1.5em;
-                    margin-bottom: 0.5em;
+                    /* Override SE native CSS large margins to prevent single-char titles taking full page */
+                    margin-top: 1.5em !important;
+                    margin-bottom: 0.5em !important;
                 }
 
                 h1 { font-size: 1.5em; }
                 h2 { font-size: 1.3em; }
                 h3 { font-size: 1.1em; }
+
+                /* Ensure chapter title (h2 in SE format) doesn't have excessive margins */
+                section > h2:first-child,
+                article > h2:first-child,
+                h2[epub\\:type="title"],
+                h2.title {
+                    margin-top: 0.5em !important;
+                    margin-bottom: 1em !important;
+                }
 
                 blockquote {
                     margin: 1em 0;
