@@ -398,7 +398,7 @@
 		93ABC85CCF314257AB2F22CB /* RestorePurchasesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestorePurchasesView.swift; sourceTree = "<group>"; };
 		947C433C7DEC1ED87D448DF7 /* AuthorProfileView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthorProfileView.swift; sourceTree = "<group>"; };
 		948B60E51B1D3470A6B2BF81 /* PageTurnSoundEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PageTurnSoundEngine.swift; sourceTree = "<group>"; };
-		95BD530CE20FCE2D4F1149A6 /* OfflineBannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OfflineBannerView.swift; path = Readmigo/Core/UI/Components/OfflineBannerView.swift; sourceTree = "<group>"; };
+		95BD530CE20FCE2D4F1149A6 /* OfflineBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineBannerView.swift; sourceTree = "<group>"; };
 		96ED261DEBD94879889B638B /* Reading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reading.swift; sourceTree = "<group>"; };
 		99773A1E13B44004935EA77B /* ReadingTrendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingTrendView.swift; sourceTree = "<group>"; };
 		99C21E138D3223C8193F8737 /* FeedbackRatingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FeedbackRatingView.swift; path = Messaging/Components/FeedbackRatingView.swift; sourceTree = "<group>"; };
@@ -488,15 +488,15 @@
 		E81AAA912EF7A96500CEED34 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E81AAA932EF7B9E100CEED34 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		E82B8EB12EFECCE8005A9A2D /* AppConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigManager.swift; sourceTree = "<group>"; };
-		E84592D42F34684D00A2098C /* Device.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Device.swift; path = Readmigo/Core/Models/Device.swift; sourceTree = "<group>"; };
-		E84592D52F34684D00A2098C /* FAQ.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FAQ.swift; path = Readmigo/Core/Models/FAQ.swift; sourceTree = "<group>"; };
-		E84592D62F34684D00A2098C /* Medal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Medal.swift; path = Readmigo/Core/Models/Medal.swift; sourceTree = "<group>"; };
+		E84592D42F34684D00A2098C /* Device.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Device.swift; sourceTree = "<group>"; };
+		E84592D52F34684D00A2098C /* FAQ.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FAQ.swift; sourceTree = "<group>"; };
+		E84592D62F34684D00A2098C /* Medal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Medal.swift; sourceTree = "<group>"; };
 		E84592D72F34684D00A2098C /* ParagraphTranslation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParagraphTranslation.swift; sourceTree = "<group>"; };
-		E84592D82F34684D00A2098C /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UserProfile.swift; path = Readmigo/Core/Models/UserProfile.swift; sourceTree = "<group>"; };
-		E84592DE2F34687800A2098C /* AccountIdService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AccountIdService.swift; path = Readmigo/Core/Services/AccountIdService.swift; sourceTree = "<group>"; };
-		E84592DF2F34687800A2098C /* ActivityTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ActivityTracker.swift; path = Readmigo/Core/Services/ActivityTracker.swift; sourceTree = "<group>"; };
-		E84592E02F34687800A2098C /* ManifestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ManifestService.swift; path = Readmigo/Core/Services/ManifestService.swift; sourceTree = "<group>"; };
-		E84592E12F34687800A2098C /* PerformanceTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PerformanceTracker.swift; path = Readmigo/Core/Services/PerformanceTracker.swift; sourceTree = "<group>"; };
+		E84592D82F34684D00A2098C /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		E84592DE2F34687800A2098C /* AccountIdService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountIdService.swift; sourceTree = "<group>"; };
+		E84592DF2F34687800A2098C /* ActivityTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityTracker.swift; sourceTree = "<group>"; };
+		E84592E02F34687800A2098C /* ManifestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManifestService.swift; sourceTree = "<group>"; };
+		E84592E12F34687800A2098C /* PerformanceTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceTracker.swift; sourceTree = "<group>"; };
 		E84592E22F34687800A2098C /* TranslationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationService.swift; sourceTree = "<group>"; };
 		E84592E82F3468A100A2098C /* TranslationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationSheet.swift; sourceTree = "<group>"; };
 		E87D7F642F1145DB00E76B5E /* ScreenDebug.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = ScreenDebug.txt; sourceTree = "<group>"; };
@@ -644,21 +644,12 @@
 		2552A2EC9670467B80E00807 = {
 			isa = PBXGroup;
 			children = (
-				E84592DE2F34687800A2098C /* AccountIdService.swift */,
-				E84592DF2F34687800A2098C /* ActivityTracker.swift */,
-				E84592E02F34687800A2098C /* ManifestService.swift */,
-				E84592E12F34687800A2098C /* PerformanceTracker.swift */,
-				E84592D42F34684D00A2098C /* Device.swift */,
-				E84592D52F34684D00A2098C /* FAQ.swift */,
-				E84592D62F34684D00A2098C /* Medal.swift */,
-				E84592D82F34684D00A2098C /* UserProfile.swift */,
 				E87D7F642F1145DB00E76B5E /* ScreenDebug.txt */,
 				E81AAA912EF7A96500CEED34 /* Assets.xcassets */,
 				E81AAA932EF7B9E100CEED34 /* LaunchScreen.storyboard */,
 				L0CA11ZE2EF8000000CEED34 /* Readmigo/Localizable.xcstrings */,
 				5633B357BCED4AF7B88EAAEB /* Readmigo */,
 				05140C1F259F4D91B53017C2 /* Products */,
-				95BD530CE20FCE2D4F1149A6 /* OfflineBannerView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -832,6 +823,10 @@
 				F75CD93DD9C7481190D61FC9 /* AI.swift */,
 				E84592D72F34684D00A2098C /* ParagraphTranslation.swift */,
 				D0884DD34B14423AA1C8C735 /* Analytics.swift */,
+				E84592D42F34684D00A2098C /* Device.swift */,
+				E84592D52F34684D00A2098C /* FAQ.swift */,
+				E84592D62F34684D00A2098C /* Medal.swift */,
+				E84592D82F34684D00A2098C /* UserProfile.swift */,
 				A0614204EB434A96A4A17EC4 /* Badge.swift */,
 				7F7C0532FAB342189E615C37 /* Book.swift */,
 				7031E432E77144419E09A5EB /* BookList.swift */,
@@ -900,6 +895,10 @@
 			children = (
 				47BC7E98F47446A19E444219 /* BookmarkManager.swift */,
 				E84592E22F34687800A2098C /* TranslationService.swift */,
+				E84592DE2F34687800A2098C /* AccountIdService.swift */,
+				E84592DF2F34687800A2098C /* ActivityTracker.swift */,
+				E84592E02F34687800A2098C /* ManifestService.swift */,
+				E84592E12F34687800A2098C /* PerformanceTracker.swift */,
 				BHM0000000000000000001 /* BrowsingHistoryManager.swift */,
 				FAV0000000000000000001 /* FavoritesManager.swift */,
 				RPS0000000000000000001 /* ReadingProgressStore.swift */,
@@ -1344,6 +1343,7 @@
 				ERV00000000000000000002 /* ElegantRefreshView.swift */,
 				IMNAV00000000000000002 /* ImmersiveNavigationBar.swift */,
 				TTV00000000000000000002 /* TypewriterTextView.swift */,
+				95BD530CE20FCE2D4F1149A6 /* OfflineBannerView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
