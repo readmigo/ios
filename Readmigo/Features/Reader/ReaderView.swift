@@ -154,6 +154,12 @@ struct ReaderView: View {
                                 imageViewerIndex = allImages.firstIndex { $0.src == src } ?? 0
                                 showImageViewer = true
                             },
+                            // Paragraph translation
+                            onParagraphLongPress: { paragraphIndex, text in
+                                translationParagraphIndex = paragraphIndex
+                                translationParagraphText = text
+                                showTranslationSheet = true
+                            },
                             // Advanced typography settings
                             letterSpacing: themeManager.letterSpacing,
                             wordSpacing: themeManager.wordSpacing,
@@ -162,13 +168,7 @@ struct ReaderView: View {
                             hyphenation: themeManager.hyphenation,
                             fontWeight: themeManager.fontWeight,
                             // SE native CSS
-                            stylesUrl: book.stylesUrl,
-                            // Paragraph translation
-                            onParagraphLongPress: { paragraphIndex, text in
-                                translationParagraphIndex = paragraphIndex
-                                translationParagraphText = text
-                                showTranslationSheet = true
-                            }
+                            stylesUrl: book.stylesUrl
                         )
                     }
                 } else if let error = viewModel.error {

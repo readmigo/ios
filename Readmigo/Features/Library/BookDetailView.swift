@@ -285,11 +285,11 @@ struct BookDetailView: View {
                 )
             }
 
-            // Author Link (as NavigationLink)
-            AuthorNavigationSection(authorName: book.author, authorId: book.authorId)
+            // Author Link (as NavigationLink) - prefer freshly loaded bookDetail for proper localization
+            AuthorNavigationSection(authorName: bookDetail?.book.author ?? book.author, authorId: book.authorId)
 
-            // Description
-            if let description = book.description {
+            // Description (prefer freshly loaded bookDetail for proper localization)
+            if let description = bookDetail?.book.description ?? book.description {
                 DescriptionSection(text: description)
             }
 
