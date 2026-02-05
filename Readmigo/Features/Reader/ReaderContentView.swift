@@ -34,6 +34,9 @@ struct ReaderContentView: UIViewRepresentable {
     // Image viewer
     var onImageTap: ((String, String?, [ImageInfo]) -> Void)? = nil
 
+    // Paragraph translation (long press)
+    var onParagraphLongPress: ((Int, String) -> Void)? = nil
+
     // Advanced typography settings
     var lineSpacing: LineSpacing = .normal
     var letterSpacing: CGFloat = 0
@@ -60,6 +63,7 @@ struct ReaderContentView: UIViewRepresentable {
         configuration.userContentController.add(context.coordinator, name: "imageTap")
         configuration.userContentController.add(context.coordinator, name: "readerLog")
         configuration.userContentController.add(context.coordinator, name: "contentReady")
+        configuration.userContentController.add(context.coordinator, name: "paragraphLongPress")
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.isOpaque = false
@@ -95,6 +99,7 @@ struct ReaderContentView: UIViewRepresentable {
         context.coordinator.onHighlightTap = onHighlightTap
         context.coordinator.onImageTap = onImageTap
         context.coordinator.onContentReady = onContentReady
+        context.coordinator.onParagraphLongPress = onParagraphLongPress
         context.coordinator.highlights = highlights
 
         // Update scroll enabled based on reading mode
@@ -136,6 +141,7 @@ struct ReaderContentView: UIViewRepresentable {
             onContentReady: onContentReady,
             onHighlightTap: onHighlightTap,
             onImageTap: onImageTap,
+            onParagraphLongPress: onParagraphLongPress,
             highlights: highlights
         )
     }
@@ -254,13 +260,13 @@ struct ReaderContentView: UIViewRepresentable {
                 h2 { font-size: 1.3em; }
                 h3 { font-size: 1.1em; }
 
-                /* Ensure chapter title (h2 in SE format) doesn't have excessive margins */
-                section > h2:first-child,
-                article > h2:first-child,
-                h2[epub\\:type="title"],
-                h2.title {
-                    margin-top: 0.5em !important;
-                    margin-bottom: 1em !important;
+                /* Hide duplicate chapter title h2 in SE format (app already shows chapter title) */
+                .chapter-content > section > h2:first-child,
+                .chapter-content > article > h2:first-child,
+                .chapter-content > h2:first-child,
+                h2[epub\\:type*="ordinal"],
+                h2[epub\\:type*="title"] {
+                    display: none !important;
                 }
 
                 blockquote {
@@ -705,6 +711,72 @@ struct ReaderContentView: UIViewRepresentable {
                     if (end < text.length) end++;
 
                     return text.substring(start, end).trim();
+                }
+
+                // ========================================
+                // Paragraph Long Press Handling (Translation)
+                // ========================================
+                let longPressTimer = null;
+                let longPressTarget = null;
+                const LONG_PRESS_DURATION = 500; // ms
+
+                function setupParagraphLongPress() {
+                    const container = document.querySelector('.chapter-content') || document.body;
+                    const paragraphs = container.querySelectorAll('p');
+
+                    paragraphs.forEach(function(p, index) {
+                        p.dataset.paragraphIndex = index;
+
+                        p.addEventListener('touchstart', function(e) {
+                            // Don't trigger if text is being selected
+                            if (window.getSelection().toString().trim().length > 0) return;
+
+                            longPressTarget = p;
+                            longPressTimer = setTimeout(function() {
+                                const text = p.textContent.trim();
+                                if (text.length > 0) {
+                                    // Haptic feedback (if supported)
+                                    if (window.navigator && window.navigator.vibrate) {
+                                        window.navigator.vibrate(50);
+                                    }
+                                    window.webkit.messageHandlers.paragraphLongPress.postMessage({
+                                        paragraphIndex: index,
+                                        text: text
+                                    });
+                                }
+                            }, LONG_PRESS_DURATION);
+                        }, { passive: true });
+
+                        p.addEventListener('touchend', function(e) {
+                            if (longPressTimer) {
+                                clearTimeout(longPressTimer);
+                                longPressTimer = null;
+                            }
+                        });
+
+                        p.addEventListener('touchmove', function(e) {
+                            if (longPressTimer) {
+                                clearTimeout(longPressTimer);
+                                longPressTimer = null;
+                            }
+                        });
+
+                        p.addEventListener('touchcancel', function(e) {
+                            if (longPressTimer) {
+                                clearTimeout(longPressTimer);
+                                longPressTimer = null;
+                            }
+                        });
+                    });
+                }
+
+                // Run paragraph setup after DOM is ready
+                if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                    setTimeout(setupParagraphLongPress, 150);
+                } else {
+                    document.addEventListener('DOMContentLoaded', function() {
+                        setTimeout(setupParagraphLongPress, 150);
+                    });
                 }
 
 
@@ -1759,6 +1831,7 @@ struct ReaderContentView: UIViewRepresentable {
         var onContentReady: (() -> Void)?
         var onHighlightTap: ((Bookmark) -> Void)?
         var onImageTap: ((String, String?, [ImageInfo]) -> Void)?
+        var onParagraphLongPress: ((Int, String) -> Void)?
         var highlights: [Bookmark] = []
         weak var webView: WKWebView?
         var lastContentKey: String?
@@ -1774,6 +1847,7 @@ struct ReaderContentView: UIViewRepresentable {
             onContentReady: (() -> Void)? = nil,
             onHighlightTap: ((Bookmark) -> Void)? = nil,
             onImageTap: ((String, String?, [ImageInfo]) -> Void)? = nil,
+            onParagraphLongPress: ((Int, String) -> Void)? = nil,
             highlights: [Bookmark] = []
         ) {
             self.onProgressUpdate = onProgressUpdate
@@ -1786,6 +1860,7 @@ struct ReaderContentView: UIViewRepresentable {
             self.onContentReady = onContentReady
             self.onHighlightTap = onHighlightTap
             self.onImageTap = onImageTap
+            self.onParagraphLongPress = onParagraphLongPress
             self.highlights = highlights
         }
 
@@ -1902,6 +1977,14 @@ struct ReaderContentView: UIViewRepresentable {
                 // WebView content is ready and visible
                 DispatchQueue.main.async {
                     self.onContentReady?()
+                }
+
+            case "paragraphLongPress":
+                if let paragraphIndex = body["paragraphIndex"] as? Int,
+                   let text = body["text"] as? String {
+                    DispatchQueue.main.async {
+                        self.onParagraphLongPress?(paragraphIndex, text)
+                    }
                 }
 
             default:

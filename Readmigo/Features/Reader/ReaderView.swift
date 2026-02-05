@@ -26,6 +26,11 @@ struct ReaderView: View {
     @State private var imageViewerImages: [BookImage] = []
     @State private var imageViewerIndex: Int = 0
 
+    // Translation sheet state
+    @State private var showTranslationSheet = false
+    @State private var translationParagraphIndex: Int = 0
+    @State private var translationParagraphText: String = ""
+
     init(book: Book, bookDetail: BookDetail) {
         self.book = book
         self.bookDetail = bookDetail
@@ -157,7 +162,13 @@ struct ReaderView: View {
                             hyphenation: themeManager.hyphenation,
                             fontWeight: themeManager.fontWeight,
                             // SE native CSS
-                            stylesUrl: book.stylesUrl
+                            stylesUrl: book.stylesUrl,
+                            // Paragraph translation
+                            onParagraphLongPress: { paragraphIndex, text in
+                                translationParagraphIndex = paragraphIndex
+                                translationParagraphText = text
+                                showTranslationSheet = true
+                            }
                         )
                     }
                 } else if let error = viewModel.error {
@@ -382,6 +393,19 @@ struct ReaderView: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.hidden)
             }
+        }
+        .sheet(isPresented: $showTranslationSheet) {
+            TranslationSheet(
+                bookId: book.id,
+                chapterId: viewModel.currentChapter?.id ?? "",
+                paragraphIndex: translationParagraphIndex,
+                originalText: translationParagraphText,
+                onDismiss: {
+                    showTranslationSheet = false
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.hidden)
         }
         .task {
             await viewModel.loadChapter(at: 0)

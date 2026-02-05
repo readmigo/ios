@@ -25,3 +25,13 @@
 "profile.gender.other" = "Other";
 "profile.gender.prefer_not_to_say" = "Prefer not to say";
 "profile.gender.unknown" = "Unknown";
+
+/* Translation */
+"translation.title" = "Translation";
+"translation.original" = "Original";
+"translation.translated" = "Translation";
+"translation.notNeeded" = "Translation not needed for English";
+"translation.error.notAvailable" = "Translation not available";
+"translation.error.unsupportedLocale" = "Language not supported";
+"translation.error.network" = "Network error";
+"translation.error.unknown" = "Failed to load translation";

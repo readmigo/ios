@@ -269,6 +269,20 @@ enum APIEndpoints {
     static let browsingHistoryReorder = "/browsing-history/reorder"
     static let browsingHistorySync = "/browsing-history/sync"
 
+    // Chapter Translations
+    static func chapterTranslationAvailable(_ bookId: String, _ chapterId: String) -> String {
+        "/books/\(bookId)/chapters/\(chapterId)/translations/available"
+    }
+    static func chapterTranslationMetadata(_ bookId: String, _ chapterId: String, _ locale: String) -> String {
+        "/books/\(bookId)/chapters/\(chapterId)/translations/\(locale)/metadata"
+    }
+    static func paragraphTranslation(_ bookId: String, _ chapterId: String, _ locale: String, _ paragraphIndex: Int) -> String {
+        "/books/\(bookId)/chapters/\(chapterId)/translations/\(locale)/paragraphs/\(paragraphIndex)"
+    }
+    static func batchParagraphTranslations(_ bookId: String, _ chapterId: String, _ locale: String) -> String {
+        "/books/\(bookId)/chapters/\(chapterId)/translations/\(locale)/paragraphs"
+    }
+
     // Favorites
     static let favorites = "/favorites"
     static func favoriteItem(_ bookId: String) -> String { "/favorites/\(bookId)" }

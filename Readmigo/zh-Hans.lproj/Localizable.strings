@@ -25,3 +25,13 @@
 "profile.gender.other" = "其他";
 "profile.gender.prefer_not_to_say" = "不愿透露";
 "profile.gender.unknown" = "未知";
+
+/* Translation */
+"translation.title" = "翻译";
+"translation.original" = "原文";
+"translation.translated" = "译文";
+"translation.notNeeded" = "简体中文无需翻译";
+"translation.error.notAvailable" = "暂无翻译";
+"translation.error.unsupportedLocale" = "不支持该语言";
+"translation.error.network" = "网络错误";
+"translation.error.unknown" = "加载翻译失败";
