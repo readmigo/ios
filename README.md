@@ -38,7 +38,7 @@ Native iOS application for Readmigo - AI-powered English reading companion.
 
 | Platform | Link |
 |----------|------|
-| App Store | [Readmigo on App Store](https://apps.apple.com/app/readmigo) |
+| App Store | [Readmigo on App Store](https://apps.apple.com/app/readmigo/id6740539519) |
 
 ## Development
 
