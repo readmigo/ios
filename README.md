@@ -1,5 +1,7 @@
 # Readmigo iOS
 
+[![CI](https://github.com/readmigo/ios/actions/workflows/ci.yml/badge.svg)](https://github.com/readmigo/ios/actions/workflows/ci.yml)
+
 Native iOS application for Readmigo - AI-powered English reading companion.
 
 ## Tech Stack
