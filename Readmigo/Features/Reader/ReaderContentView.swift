@@ -102,6 +102,11 @@ struct ReaderContentView: UIViewRepresentable {
         context.coordinator.onParagraphLongPress = onParagraphLongPress
         context.coordinator.highlights = highlights
 
+        // Debug: Check if onParagraphLongPress is set
+        if onParagraphLongPress != nil {
+            LoggingService.shared.warning(.reading, "[updateUIView] onParagraphLongPress is SET", component: "ReaderContentView")
+        }
+
         // Update scroll enabled based on reading mode
         webView.scrollView.isScrollEnabled = !readingMode.isPaged
 
@@ -247,6 +252,9 @@ struct ReaderContentView: UIViewRepresentable {
 
                 p {
                     margin: 0 0 1em 0;
+                    -webkit-user-select: none;
+                    user-select: none;
+                    -webkit-touch-callout: none;
                 }
 
                 h1, h2, h3, h4, h5, h6, hgroup {
@@ -721,34 +729,64 @@ struct ReaderContentView: UIViewRepresentable {
                 const LONG_PRESS_DURATION = 500; // ms
 
                 function setupParagraphLongPress() {
-                    const container = document.querySelector('.chapter-content') || document.body;
+                    // Search in pagesContainer (after pagination) or chapter-content (before pagination) or body
+                    const container = document.getElementById('pagesContainer') || document.querySelector('.chapter-content') || document.body;
                     const paragraphs = container.querySelectorAll('p');
+                    window.webkit.messageHandlers.readerLog.postMessage('[LongPress] Setup called, container=' + (container.id || container.className || 'body') + ', found ' + paragraphs.length + ' paragraphs');
 
-                    paragraphs.forEach(function(p, index) {
+                    paragraphs.forEach(function(p, localIdx) {
+                        // Use global paragraph index if available, otherwise fallback to local index
+                        const globalIndex = parseInt(p.getAttribute('data-global-paragraph-index'), 10);
+                        const index = isNaN(globalIndex) ? localIdx : globalIndex;
+                        const text = (p.textContent || '').trim();
                         p.dataset.paragraphIndex = index;
 
+                        // Debug log for each paragraph
+                        window.webkit.messageHandlers.readerLog.postMessage('[LongPress] p[local=' + localIdx + '] globalIndex=' + globalIndex + ' -> using index=' + index + ' text="' + text.substring(0, 40) + '..."');
+
                         p.addEventListener('touchstart', function(e) {
+                            window.webkit.messageHandlers.readerLog.postMessage('[LongPress] touchstart on paragraph index=' + index + ' text="' + text.substring(0, 40) + '..."');
+
                             // Don't trigger if text is being selected
-                            if (window.getSelection().toString().trim().length > 0) return;
+                            const selection = window.getSelection().toString().trim();
+                            if (selection.length > 0) {
+                                window.webkit.messageHandlers.readerLog.postMessage('[LongPress] Skipped - text already selected: ' + selection.substring(0, 20));
+                                return;
+                            }
+
+                            if (index < 0) {
+                                window.webkit.messageHandlers.readerLog.postMessage('[LongPress] Skipped - no valid global index');
+                                return;
+                            }
 
                             longPressTarget = p;
+                            window.webkit.messageHandlers.readerLog.postMessage('[LongPress] Timer started for paragraph globalIndex=' + index);
                             longPressTimer = setTimeout(function() {
                                 const text = p.textContent.trim();
+                                window.webkit.messageHandlers.readerLog.postMessage('[LongPress] Timer FIRED - globalIndex=' + index + ', textLength=' + text.length + ', text="' + text.substring(0, 80) + '..."');
                                 if (text.length > 0) {
                                     // Haptic feedback (if supported)
                                     if (window.navigator && window.navigator.vibrate) {
                                         window.navigator.vibrate(50);
                                     }
+                                    window.webkit.messageHandlers.readerLog.postMessage('[LongPress] Sending to Swift - paragraphIndex=' + index + ', originalText="' + text.substring(0, 50) + '..."');
                                     window.webkit.messageHandlers.paragraphLongPress.postMessage({
                                         paragraphIndex: index,
                                         text: text
                                     });
+                                    // Clear any text selection after triggering translation
+                                    window.getSelection().removeAllRanges();
+                                    // Also clear after a short delay to catch any delayed selection
+                                    setTimeout(function() {
+                                        window.getSelection().removeAllRanges();
+                                    }, 50);
                                 }
                             }, LONG_PRESS_DURATION);
                         }, { passive: true });
 
                         p.addEventListener('touchend', function(e) {
                             if (longPressTimer) {
+                                window.webkit.messageHandlers.readerLog.postMessage('[LongPress] touchend - timer CANCELLED for paragraph ' + index);
                                 clearTimeout(longPressTimer);
                                 longPressTimer = null;
                             }
@@ -756,6 +794,7 @@ struct ReaderContentView: UIViewRepresentable {
 
                         p.addEventListener('touchmove', function(e) {
                             if (longPressTimer) {
+                                window.webkit.messageHandlers.readerLog.postMessage('[LongPress] touchmove - timer CANCELLED for paragraph ' + index);
                                 clearTimeout(longPressTimer);
                                 longPressTimer = null;
                             }
@@ -763,20 +802,25 @@ struct ReaderContentView: UIViewRepresentable {
 
                         p.addEventListener('touchcancel', function(e) {
                             if (longPressTimer) {
+                                window.webkit.messageHandlers.readerLog.postMessage('[LongPress] touchcancel - timer CANCELLED for paragraph ' + index);
                                 clearTimeout(longPressTimer);
                                 longPressTimer = null;
                             }
                         });
                     });
+                    window.webkit.messageHandlers.readerLog.postMessage('[LongPress] Setup complete');
                 }
 
-                // Run paragraph setup after DOM is ready
-                if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                    setTimeout(setupParagraphLongPress, 150);
-                } else {
-                    document.addEventListener('DOMContentLoaded', function() {
+                // Run paragraph setup after DOM is ready (scroll mode only)
+                // For paged mode, setupParagraphLongPress is called after pagination completes
+                if (!IS_PAGED) {
+                    if (document.readyState === 'complete' || document.readyState === 'interactive') {
                         setTimeout(setupParagraphLongPress, 150);
-                    });
+                    } else {
+                        document.addEventListener('DOMContentLoaded', function() {
+                            setTimeout(setupParagraphLongPress, 150);
+                        });
+                    }
                 }
 
 
@@ -1253,9 +1297,25 @@ struct ReaderContentView: UIViewRepresentable {
             </div>
         </div>
         <script>
+            // Index all paragraphs with global indices before pagination
+            function indexAllParagraphs() {
+                const allParagraphs = document.querySelectorAll('p');
+                let indexedCount = 0;
+                allParagraphs.forEach(function(p, idx) {
+                    const text = (p.textContent || '').trim();
+                    // Log each paragraph for debugging
+                    window.webkit.messageHandlers.readerLog.postMessage('[IndexParagraphs] p[' + idx + '] length=' + text.length + ' text="' + text.substring(0, 50) + '..."');
+                    p.setAttribute('data-global-paragraph-index', idx);
+                    indexedCount++;
+                });
+                window.webkit.messageHandlers.readerLog.postMessage('[IndexParagraphs] Total indexed: ' + indexedCount + ' paragraphs');
+            }
+
             // Auto-paginate content after DOM loads
             document.addEventListener('DOMContentLoaded', function() {
                 logReaderEvent('Timing', 'DOMContentLoaded fired');
+                // Index paragraphs first, then paginate
+                indexAllParagraphs();
                 // Small delay to ensure content is fully rendered
                 setTimeout(function() {
                     logReaderEvent('Timing', 'Starting paginateContent after 50ms delay');
@@ -1311,6 +1371,9 @@ struct ReaderContentView: UIViewRepresentable {
                         container.style.transition = 'opacity 0.15s ease-in';
                         container.style.opacity = '1';
                         logReaderEvent('Timing', 'Content shown (single page)');
+
+                        // Setup paragraph long press after pagination (paged mode)
+                        setupParagraphLongPress();
 
                         // Notify Swift that content is ready and visible
                         setTimeout(function() {
@@ -1618,6 +1681,10 @@ struct ReaderContentView: UIViewRepresentable {
 
                                     const pageP = document.createElement(el.tagName);
                                     pageP.className = el.className;
+                                    const globalIdx = el.getAttribute('data-global-paragraph-index');
+                                    if (globalIdx !== null) {
+                                        pageP.setAttribute('data-global-paragraph-index', globalIdx);
+                                    }
                                     pageP.insertAdjacentHTML('beforeend', safeText.trim());
                                     splitPages.push(pageP.outerHTML);
                                     currentText = nextPageStart;
@@ -1630,6 +1697,10 @@ struct ReaderContentView: UIViewRepresentable {
                             if (currentText.trim()) {
                                 const pageP = document.createElement(el.tagName);
                                 pageP.className = el.className;
+                                const globalIdx = el.getAttribute('data-global-paragraph-index');
+                                if (globalIdx !== null) {
+                                    pageP.setAttribute('data-global-paragraph-index', globalIdx);
+                                }
                                 pageP.insertAdjacentHTML('beforeend', currentText.trim());
                                 splitPages.push(pageP.outerHTML);
                             }
@@ -1801,6 +1872,9 @@ struct ReaderContentView: UIViewRepresentable {
                     console.log('🟢 [DEBUG] ================================');
                     logReaderEvent('Timing', 'Content shown');
 
+                    // Setup paragraph long press after pagination (paged mode)
+                    setupParagraphLongPress();
+
                     // Notify Swift that content is ready and visible
                     setTimeout(function() {
                         console.log('🟢 [DEBUG] 发送 contentReady 消息到 Swift');
@@ -1868,8 +1942,8 @@ struct ReaderContentView: UIViewRepresentable {
             // Handle readerLog separately as it can be string or object
             if message.name == "readerLog" {
                 if let stringMessage = message.body as? String {
-                    // Simple string log
-                    print("📖 [ReaderJS] \(stringMessage)")
+                    // Simple string log - use LoggingService for system log visibility (warning level for visibility)
+                    LoggingService.shared.warning(.reading, "[ReaderJS] \(stringMessage)", component: "ReaderContentView")
                     return
                 } else if let body = message.body as? [String: Any] {
                     // Object format log
@@ -1880,7 +1954,7 @@ struct ReaderContentView: UIViewRepresentable {
 
                     // Log Timing, Pagination and Navigation categories (useful for debugging)
                     if category == "Timing" || category == "Pagination" || category == "Navigation" {
-                        print("📖 [ReaderJS] [\(category)] \(logMessage) (page \(currentPage + 1)/\(totalPages))")
+                        LoggingService.shared.info(.reading, "[ReaderJS] [\(category)] \(logMessage) (page \(currentPage + 1)/\(totalPages))", component: "ReaderContentView")
                     }
                     return
                 }
@@ -1980,11 +2054,16 @@ struct ReaderContentView: UIViewRepresentable {
                 }
 
             case "paragraphLongPress":
+                LoggingService.shared.warning(.reading, "[Swift] paragraphLongPress message received", component: "ReaderContentView")
                 if let paragraphIndex = body["paragraphIndex"] as? Int,
                    let text = body["text"] as? String {
+                    LoggingService.shared.warning(.reading, "[Swift] paragraphLongPress parsed: index=\(paragraphIndex), textLength=\(text.count)", component: "ReaderContentView")
                     DispatchQueue.main.async {
+                        LoggingService.shared.warning(.reading, "[Swift] Calling onParagraphLongPress callback, callback exists: \(self.onParagraphLongPress != nil)", component: "ReaderContentView")
                         self.onParagraphLongPress?(paragraphIndex, text)
                     }
+                } else {
+                    LoggingService.shared.warning(.reading, "[Swift] paragraphLongPress parse FAILED, body: \(body)", component: "ReaderContentView")
                 }
 
             default:
