@@ -11,6 +11,8 @@ struct BookListBook: Codable, Identifiable {
     let difficultyScore: Double?
     let wordCount: Int?
     let genres: [String]?
+    let doubanRating: Double?
+    let goodreadsRating: Double?
     let rank: Int?
     let customDescription: String?
 
@@ -66,7 +68,9 @@ struct BookListBook: Codable, Identifiable {
             createdAt: nil,
             hasAudiobook: nil,
             audiobookId: nil,
-            stylesUrl: nil
+            stylesUrl: nil,
+            doubanRating: doubanRating,
+            goodreadsRating: goodreadsRating
         )
     }
 }

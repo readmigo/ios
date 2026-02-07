@@ -467,25 +467,26 @@ private struct CategoryBookRow: View {
     let book: Book
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .top, spacing: 12) {
             // Cover
-            if let coverUrl = book.coverThumbUrl ?? book.coverUrl, let url = URL(string: coverUrl) {
+            if let coverUrl = book.displayCoverUrl, let url = URL(string: coverUrl) {
                 KFImage(url)
                     .placeholder { _ in coverPlaceholder }
                     .fade(duration: 0.25)
                     .resizable()
                     .aspectRatio(2/3, contentMode: .fill)
-                    .frame(width: 60, height: 90)
+                    .frame(width: 70, height: 105)
                     .cornerRadius(8)
+                    .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
             } else {
                 coverPlaceholder
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(book.localizedTitle)
                     .font(.subheadline)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
+                    .fontWeight(.semibold)
+                    .lineLimit(2)
                     .foregroundColor(.primary)
 
                 Text(book.localizedAuthor)
@@ -493,38 +494,79 @@ private struct CategoryBookRow: View {
                     .foregroundColor(.secondary)
                     .lineLimit(1)
 
+                // Description
                 if let desc = book.description, !desc.isEmpty {
                     Text(desc)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .font(.caption)
+                        .foregroundColor(.secondary.opacity(0.8))
                         .lineLimit(2)
+                        .padding(.top, 1)
                 }
 
-                if let wc = book.wordCount {
-                    HStack(spacing: 4) {
-                        Image(systemName: "doc.text")
-                            .font(.caption2)
-                        Text(formatWordCount(wc))
-                            .font(.caption2)
+                Spacer(minLength: 4)
+
+                // Compact metadata: word count + rating + difficulty
+                HStack(spacing: 8) {
+                    if let wc = book.wordCount {
+                        HStack(spacing: 2) {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 9))
+                            Text(formatWordCount(wc))
+                                .font(.caption2)
+                        }
+                        .foregroundColor(.secondary)
                     }
-                    .foregroundColor(.secondary)
+
+                    if let rating = book.formattedRating {
+                        HStack(spacing: 2) {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 9))
+                                .foregroundColor(.orange)
+                            Text(rating)
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(.secondary)
+                    }
+
+                    if let _ = book.difficultyScore {
+                        HStack(spacing: 2) {
+                            Circle()
+                                .fill(difficultyColor)
+                                .frame(width: 6, height: 6)
+                            Text(book.difficultyLevel)
+                                .font(.caption2)
+                        }
+                        .foregroundColor(.secondary)
+                    }
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 0)
 
             Image(systemName: "chevron.right")
                 .font(.caption)
                 .foregroundColor(.secondary)
+                .padding(.top, 44)
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
     }
 
+    private var difficultyColor: Color {
+        guard let score = book.difficultyScore else { return .gray }
+        switch score {
+        case 0..<30: return .green
+        case 30..<50: return .blue
+        case 50..<70: return .orange
+        default: return .red
+        }
+    }
+
     private var coverPlaceholder: some View {
         Rectangle()
             .fill(Color(.systemGray5))
-            .frame(width: 60, height: 90)
+            .frame(width: 70, height: 105)
             .cornerRadius(8)
             .overlay(
                 Image(systemName: "book.closed.fill")
@@ -534,8 +576,8 @@ private struct CategoryBookRow: View {
 
     private func formatWordCount(_ wc: Int) -> String {
         if wc >= 1_000_000 { return String(format: "%.1fM", Double(wc) / 1_000_000) }
-        if wc >= 1000 { return "\(wc / 1000)K words" }
-        return "\(wc) words"
+        if wc >= 1000 { return "\(wc / 1000)K" }
+        return "\(wc)"
     }
 }
 
@@ -550,27 +592,28 @@ private struct BookstoreBookRow: View {
     private var book: Book { bookWithScore.book }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .top, spacing: 12) {
             // Book info (tappable for navigation)
-            HStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 // Cover
-                if let coverUrl = book.coverUrl, let url = URL(string: coverUrl) {
+                if let coverUrl = book.displayCoverUrl, let url = URL(string: coverUrl) {
                     KFImage(url)
                         .placeholder { _ in coverPlaceholder }
                         .fade(duration: 0.25)
                         .resizable()
                         .aspectRatio(2/3, contentMode: .fill)
-                        .frame(width: 60, height: 90)
+                        .frame(width: 70, height: 105)
                         .cornerRadius(8)
+                        .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
                 } else {
                     coverPlaceholder
                 }
 
                 // Info
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text(book.localizedTitle)
                         .font(.subheadline)
-                        .fontWeight(.medium)
+                        .fontWeight(.semibold)
                         .lineLimit(2)
                         .foregroundColor(.primary)
 
@@ -579,15 +622,18 @@ private struct BookstoreBookRow: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
 
-                    // Description snippet
+                    // Description
                     if let desc = book.description, !desc.isEmpty {
                         Text(desc)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                            .font(.caption)
+                            .foregroundColor(.secondary.opacity(0.8))
                             .lineLimit(2)
+                            .padding(.top, 1)
                     }
 
-                    // Word count + Rating
+                    Spacer(minLength: 4)
+
+                    // Compact metadata: word count + rating + difficulty
                     HStack(spacing: 8) {
                         if let wc = book.wordCount {
                             HStack(spacing: 2) {
@@ -610,10 +656,21 @@ private struct BookstoreBookRow: View {
                             }
                             .foregroundColor(.secondary)
                         }
+
+                        if let _ = book.difficultyScore {
+                            HStack(spacing: 2) {
+                                Circle()
+                                    .fill(difficultyColor)
+                                    .frame(width: 6, height: 6)
+                                Text(book.difficultyLevel)
+                                    .font(.caption2)
+                            }
+                            .foregroundColor(.secondary)
+                        }
                     }
                 }
 
-                Spacer()
+                Spacer(minLength: 0)
             }
             .contentShape(Rectangle())
             .onTapGesture {
@@ -621,24 +678,23 @@ private struct BookstoreBookRow: View {
             }
 
             // Favorite button
-            Image(systemName: isFavorited ? "heart.fill" : "heart")
-                .font(.system(size: 22))
-                .foregroundColor(isFavorited ? .red : .gray)
-                .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    Task {
-                        let success = await favoritesManager.toggleFavorite(bookId: book.id)
-                        if success {
-                            isFavorited.toggle()
+            VStack {
+                Image(systemName: isFavorited ? "heart.fill" : "heart")
+                    .font(.system(size: 18))
+                    .foregroundColor(isFavorited ? .red : .gray.opacity(0.5))
+                    .frame(width: 36, height: 36)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        Task {
+                            let success = await favoritesManager.toggleFavorite(bookId: book.id)
+                            if success {
+                                isFavorited.toggle()
+                            }
                         }
                     }
-                }
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            }
         }
+        .padding(.vertical, 2)
         .onAppear {
             isFavorited = favoritesManager.isFavorited(bookId: book.id)
         }
@@ -650,10 +706,20 @@ private struct BookstoreBookRow: View {
         )
     }
 
+    private var difficultyColor: Color {
+        guard let score = book.difficultyScore else { return .gray }
+        switch score {
+        case 0..<30: return .green
+        case 30..<50: return .blue
+        case 50..<70: return .orange
+        default: return .red
+        }
+    }
+
     private var coverPlaceholder: some View {
         Rectangle()
             .fill(Color(.systemGray5))
-            .frame(width: 60, height: 90)
+            .frame(width: 70, height: 105)
             .cornerRadius(8)
             .overlay(
                 Image(systemName: "book.closed.fill")
