@@ -194,7 +194,7 @@ struct BookListBookGridItem: View {
                 .lineLimit(1)
 
             // Author - 1 line
-            Text(book.authorName)
+            Text(book.author)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineLimit(1)

@@ -126,7 +126,7 @@ private struct GoldRankingSection: View {
                                         .lineLimit(1)
                                         .foregroundColor(.primary)
 
-                                    Text(book.authorName)
+                                    Text(book.author)
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
                                         .lineLimit(1)
@@ -178,7 +178,7 @@ private struct StepLadderSection: View {
                                     .lineLimit(1)
                                     .foregroundColor(.primary)
 
-                                Text(book.authorName)
+                                Text(book.author)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -300,7 +300,7 @@ private struct AdventureMapSection: View {
                                     .fontWeight(.semibold)
                                     .lineLimit(2)
                                     .foregroundColor(.primary)
-                                Text(first.authorName)
+                                Text(first.author)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -322,7 +322,7 @@ private struct AdventureMapSection: View {
                                             .fontWeight(.medium)
                                             .lineLimit(2)
                                             .foregroundColor(.primary)
-                                        Text(book.authorName)
+                                        Text(book.author)
                                             .font(.caption2)
                                             .foregroundColor(.secondary)
                                         if let wc = book.formattedWordCount {
@@ -416,7 +416,7 @@ private struct MinimalStoneSection: View {
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.primary)
-                                Text(book.authorName)
+                                Text(book.author)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -480,7 +480,7 @@ private struct DarkMysterySection: View {
                                     .fontWeight(.medium)
                                     .foregroundColor(.white)
                                     .lineLimit(1)
-                                Text(book.authorName)
+                                Text(book.author)
                                     .font(.caption)
                                     .foregroundColor(.white.opacity(0.6))
                             }
@@ -677,7 +677,7 @@ private struct DifficultyLadderSection: View {
                                     .fontWeight(.medium)
                                     .lineLimit(1)
                                     .foregroundColor(.primary)
-                                Text(book.authorName)
+                                Text(book.author)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }

@@ -495,7 +495,7 @@ private struct CategoryBookRow: View {
                     .lineLimit(1)
 
                 // Description
-                if let desc = book.description, !desc.isEmpty {
+                if let desc = book.localizedDescription, !desc.isEmpty {
                     Text(desc)
                         .font(.caption)
                         .foregroundColor(.secondary.opacity(0.8))
@@ -623,7 +623,7 @@ private struct BookstoreBookRow: View {
                         .lineLimit(1)
 
                     // Description
-                    if let desc = book.description, !desc.isEmpty {
+                    if let desc = book.localizedDescription, !desc.isEmpty {
                         Text(desc)
                             .font(.caption)
                             .foregroundColor(.secondary.opacity(0.8))

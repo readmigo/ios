@@ -4,7 +4,8 @@ import Foundation
 struct BookListBook: Codable, Identifiable {
     let id: String
     let title: String
-    let authorRef: AuthorRef?
+    let author: String
+    let authorId: String?
     let description: String?
     let coverUrl: String?
     let coverThumbUrl: String?
@@ -15,15 +16,6 @@ struct BookListBook: Codable, Identifiable {
     let goodreadsRating: Double?
     let rank: Int?
     let customDescription: String?
-
-    struct AuthorRef: Codable {
-        let id: String
-        let name: String
-    }
-
-    var authorName: String {
-        authorRef?.name ?? "Unknown"
-    }
 
     var displayCoverUrl: String? {
         coverThumbUrl ?? coverUrl
@@ -51,8 +43,8 @@ struct BookListBook: Codable, Identifiable {
         Book(
             id: id,
             title: title,
-            author: authorName,
-            authorId: authorRef?.id,
+            author: author,
+            authorId: authorId,
             description: description,
             coverUrl: coverUrl,
             coverThumbUrl: coverThumbUrl,
