@@ -45,6 +45,7 @@ enum BookListType: String, Codable {
 // MARK: - Book List Display Style
 
 enum BookListDisplayStyle: String, Codable {
+    case horizontal = "HORIZONTAL"
     case featuredBanner = "FEATURED_BANNER"
     case heroCarousel = "HERO_CAROUSEL"
     case standardCarousel = "STANDARD_CAROUSEL"
@@ -93,17 +94,35 @@ struct BookCoverDimensions {
 struct BookList: Codable, Identifiable {
     let id: String
     let title: String
+    let nameEn: String?
     let subtitle: String?
     let description: String?
     let coverUrl: String?
     let type: BookListType
     let displayStyle: BookListDisplayStyle?
-    let bookCount: Int
+    let bookCount: Int?
     let sortOrder: Int?
     let isActive: Bool?
-    let books: [Book]?
+    let books: [BookListBook]?
     let createdAt: Date?
     let updatedAt: Date?
+
+    var localizedTitle: String {
+        if LocaleHelper.isChineseLocale {
+            return title
+        }
+        return nameEn ?? title
+    }
+
+    var displayBookCount: Int {
+        bookCount ?? books?.count ?? 0
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, nameEn, subtitle, description, coverUrl, type, displayStyle
+        case bookCount, sortOrder, isActive, books, createdAt, updatedAt
+        case title = "name"
+    }
 }
 
 // MARK: - Category
@@ -123,13 +142,31 @@ struct Category: Codable, Identifiable {
     let sortOrder: Int?
     let isActive: Bool?
 
-    /// Display name - prefers English name if available
+    /// Display name based on locale
     var displayName: String {
-        nameEn ?? name
+        if LocaleHelper.isChineseLocale {
+            return name
+        }
+        return nameEn ?? name
     }
 
-    /// System icon name based on the category iconUrl (which stores icon identifiers)
+    /// System icon name based on slug or iconUrl
     var systemIconName: String {
+        // First try slug-based icons
+        switch slug {
+        case "fiction": return "book.fill"
+        case "classics": return "books.vertical.fill"
+        case "drama": return "theatermasks.fill"
+        case "adventure": return "figure.hiking"
+        case "philosophy": return "lightbulb.fill"
+        case "poetry": return "text.quote"
+        case "fantasy": return "wand.and.stars"
+        case "mystery": return "magnifyingglass"
+        case "horror": return "moon.fill"
+        case "romance": return "heart.fill"
+        default: break
+        }
+        // Fallback to iconUrl-based
         switch iconUrl {
         case "book-open": return "book.fill"
         case "lightbulb": return "lightbulb.fill"

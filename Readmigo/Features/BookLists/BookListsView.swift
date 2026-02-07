@@ -191,7 +191,7 @@ struct FeaturedBookListCard: View {
 
                 // Info
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(bookList.title)
+                    Text(bookList.localizedTitle)
                         .font(.headline)
                         .foregroundColor(.primary)
 
@@ -212,7 +212,7 @@ struct FeaturedBookListCard: View {
 
                     HStack {
                         Image(systemName: "book.closed")
-                        Text("\(bookList.bookCount) books")
+                        Text("\(bookList.displayBookCount) books")
                     }
                     .font(.caption)
                     .foregroundColor(.accentColor)
@@ -273,7 +273,7 @@ struct BookListCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(bookList.title)
+                    Text(bookList.localizedTitle)
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
@@ -281,7 +281,7 @@ struct BookListCard: View {
 
                     HStack {
                         Image(systemName: "book.closed")
-                        Text("\(bookList.bookCount) books")
+                        Text("\(bookList.displayBookCount) books")
                     }
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -328,13 +328,13 @@ struct CompactBookListCard: View {
                 .frame(width: 120, height: 80)
                 .cornerRadius(8)
 
-                Text(bookList.title)
+                Text(bookList.localizedTitle)
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
                     .lineLimit(2)
 
-                Text("\(bookList.bookCount) books")
+                Text("\(bookList.displayBookCount) books")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }

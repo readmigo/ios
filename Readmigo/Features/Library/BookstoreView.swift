@@ -5,19 +5,25 @@ import Combine
 struct BookstoreView: View {
     @EnvironmentObject var libraryManager: LibraryManager
     @EnvironmentObject var favoritesManager: FavoritesManager
+    @StateObject private var bookListsManager = BookListsManager.shared
     @State private var showSearchView = false
-    @State private var books: [BookWithScore] = []
+    @State private var detailedLists: [BookList] = []
     @State private var isLoading = false
-    @State private var isLoadingMore = false
-    @State private var hasMore = true
-    @State private var currentPage = 1
-    @State private var loadMoreError = false
-    private let pageSize = 20
+
+    // Individual books
+    @State private var books: [BookWithScore] = []
+    @State private var booksPage = 1
+    @State private var hasMoreBooks = true
+    @State private var isLoadingBooks = false
+
+    // Banner carousel
+    @State private var bannerIndex = 0
+    @State private var bannerTimer: Timer?
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Search Bar (tap to navigate to search page)
+                // Search Bar
                 Button {
                     showSearchView = true
                 } label: {
@@ -36,8 +42,8 @@ struct BookstoreView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 8)
 
-                // Books list
-                booksContent
+                // Content
+                bookListsContent
             }
             .navigationTitle("tab.discover".localized)
             .navigationBarTitleDisplayMode(.inline)
@@ -46,8 +52,8 @@ struct BookstoreView: View {
             }
         }
         .task {
-            if books.isEmpty {
-                await loadBooks()
+            if detailedLists.isEmpty && books.isEmpty {
+                await loadAll()
             }
         }
     }
@@ -55,8 +61,8 @@ struct BookstoreView: View {
     // MARK: - Content
 
     @ViewBuilder
-    private var booksContent: some View {
-        if isLoading && books.isEmpty {
+    private var bookListsContent: some View {
+        if isLoading && detailedLists.isEmpty {
             VStack(spacing: 16) {
                 ProgressView()
                 Text("common.loading".localized)
@@ -65,7 +71,7 @@ struct BookstoreView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(40)
-        } else if books.isEmpty {
+        } else if detailedLists.isEmpty && books.isEmpty {
             VStack(spacing: 16) {
                 Image(systemName: "books.vertical")
                     .font(.largeTitle)
@@ -77,131 +83,459 @@ struct BookstoreView: View {
             .padding(40)
         } else {
             ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(books.enumerated()), id: \.element.id) { index, bookWithScore in
+                LazyVStack(spacing: 8) {
+                    // Hero Banner Carousel
+                    if bannerLists.count > 0 {
+                        BookstoreHeroBanner(
+                            lists: bannerLists,
+                            currentIndex: $bannerIndex
+                        )
+                        .onAppear { startBannerTimer() }
+                        .onDisappear { stopBannerTimer() }
+                    }
+
+                    // Category Menu
+                    if !bookListsManager.categories.isEmpty {
+                        BookstoreCategoryMenu(categories: bookListsManager.categories)
+                    }
+
+                    // Book Lists
+                    ForEach(Array(detailedLists.enumerated()), id: \.element.id) { index, list in
+                        BookListStyleDispatcher(list: list, styleIndex: index)
+                    }
+
+                    // Divider between lists and books
+                    if !detailedLists.isEmpty && !books.isEmpty {
+                        HStack {
+                            Rectangle()
+                                .fill(Color.secondary.opacity(0.3))
+                                .frame(height: 1)
+                            Text("discover.allBooks".localized)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .layoutPriority(1)
+                            Rectangle()
+                                .fill(Color.secondary.opacity(0.3))
+                                .frame(height: 1)
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 16)
+                    }
+
+                    // Individual Books
+                    ForEach(books) { bookWithScore in
                         BookstoreBookRow(bookWithScore: bookWithScore)
                             .padding(.horizontal)
-                            .padding(.vertical, 8)
                             .onAppear {
-                                // Auto-load more when reaching last item
-                                if index == books.count - 1 && hasMore && !isLoadingMore && !loadMoreError {
+                                if bookWithScore.id == books.last?.id, hasMoreBooks, !isLoadingBooks {
                                     Task {
                                         await loadMoreBooks()
                                     }
                                 }
                             }
-
-                        if index < books.count - 1 {
-                            Divider()
-                                .padding(.horizontal)
-                        }
                     }
 
-                    // Load more indicator / retry button
-                    if hasMore {
-                        loadMoreView
+                    // Loading indicator for more books
+                    if isLoadingBooks {
+                        ProgressView()
+                            .padding()
                     }
                 }
-                .padding(.bottom)
+                .padding(.bottom, 20)
             }
             .elegantRefreshable {
-                await refreshBooks()
+                await refreshAll()
             }
-        }
-    }
-
-    // MARK: - Load More View
-
-    @ViewBuilder
-    private var loadMoreView: some View {
-        if loadMoreError {
-            // Retry button on error
-            Button {
-                loadMoreError = false
-                Task {
-                    await loadMoreBooks()
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.clockwise")
-                    Text("common.retry".localized)
-                }
-                .foregroundColor(.accentColor)
-                .padding()
-                .frame(maxWidth: .infinity)
-            }
-        } else if isLoadingMore {
-            // Loading indicator
-            ProgressView()
-                .padding()
-                .frame(maxWidth: .infinity)
-        } else {
-            // Spacer for auto-load trigger area
-            Color.clear
-                .frame(height: 1)
         }
     }
 
     // MARK: - Data Loading
 
-    private func loadBooks() async {
-        guard !isLoading else { return }
+    private func loadAll() async {
         isLoading = true
 
-        do {
-            let response = try await APIClient.shared.getBookstoreBooks(
-                categoryId: nil,  // nil = all books
-                page: 1,
-                pageSize: pageSize
-            )
-            books = response.books
-            currentPage = 1
-            hasMore = response.hasMore
-        } catch {
-            LoggingService.shared.error(.books, "Failed to load books: \(error)")
+        // Load book lists, categories, and first page of books in parallel
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await loadAllBookLists() }
+            group.addTask { await bookListsManager.fetchCategories() }
+            group.addTask { await loadBooks(page: 1) }
         }
 
         isLoading = false
     }
 
-    private func loadMoreBooks() async {
-        guard !isLoadingMore && hasMore && !loadMoreError else { return }
-        isLoadingMore = true
+    private func loadAllBookLists() async {
+        await bookListsManager.fetchBookLists()
 
-        do {
-            let nextPage = currentPage + 1
-            let response = try await APIClient.shared.getBookstoreBooks(
-                categoryId: nil,
-                page: nextPage,
-                pageSize: pageSize
-            )
-            books.append(contentsOf: response.books)
-            currentPage = nextPage
-            hasMore = response.hasMore
-        } catch {
-            LoggingService.shared.error(.books, "Failed to load more books: \(error)")
-            loadMoreError = true
+        var results: [BookList] = []
+        await withTaskGroup(of: BookList?.self) { group in
+            for list in bookListsManager.bookLists {
+                group.addTask {
+                    await bookListsManager.fetchBookList(id: list.id)
+                }
+            }
+            for await result in group {
+                if let list = result {
+                    results.append(list)
+                }
+            }
         }
 
-        isLoadingMore = false
+        detailedLists = results.sorted { ($0.sortOrder ?? 0) < ($1.sortOrder ?? 0) }
     }
 
-    private func refreshBooks() async {
-        currentPage = 1
-        hasMore = true
-        loadMoreError = false
-
+    private func loadBooks(page: Int) async {
+        isLoadingBooks = true
         do {
-            let response = try await APIClient.shared.getBookstoreBooks(
-                categoryId: nil,
-                page: 1,
-                pageSize: pageSize
-            )
-            books = response.books
-            hasMore = response.hasMore
+            let response = try await APIClient.shared.getBookstoreBooks(page: page)
+            if page == 1 {
+                books = response.books
+            } else {
+                let existingIds = Set(books.map(\.id))
+                let newBooks = response.books.filter { !existingIds.contains($0.id) }
+                books.append(contentsOf: newBooks)
+            }
+            hasMoreBooks = response.hasMore
+            booksPage = page
         } catch {
-            LoggingService.shared.error(.books, "Failed to refresh books: \(error)")
+            // Silently handle - books section just won't show
         }
+        isLoadingBooks = false
+    }
+
+    private func loadMoreBooks() async {
+        await loadBooks(page: booksPage + 1)
+    }
+
+    private func refreshAll() async {
+        stopBannerTimer()
+        detailedLists = []
+        books = []
+        booksPage = 1
+        hasMoreBooks = true
+        bannerIndex = 0
+        await loadAll()
+    }
+
+    // MARK: - Banner
+
+    private var bannerLists: [BookList] {
+        Array(detailedLists.prefix(3))
+    }
+
+    private func startBannerTimer() {
+        stopBannerTimer()
+        guard bannerLists.count > 1 else { return }
+        bannerTimer = Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.5)) {
+                bannerIndex = (bannerIndex + 1) % bannerLists.count
+            }
+        }
+    }
+
+    private func stopBannerTimer() {
+        bannerTimer?.invalidate()
+        bannerTimer = nil
+    }
+}
+
+// MARK: - Hero Banner Carousel
+
+private struct BookstoreHeroBanner: View {
+    let lists: [BookList]
+    @Binding var currentIndex: Int
+
+    private func gradientColors(for type: BookListType) -> [Color] {
+        switch type {
+        case .ranking: return [Color.orange, Color.red]
+        case .editorsPick: return [Color.blue, Color.purple]
+        case .collection: return [Color.teal, Color.blue]
+        case .university: return [Color.indigo, Color.blue]
+        case .celebrity: return [Color.pink, Color.purple]
+        case .annualBest: return [Color.yellow, Color.orange]
+        case .aiRecommended: return [Color.purple, Color.blue]
+        case .personalized: return [Color.pink, Color.red]
+        case .aiFeatured: return [Color.cyan, Color.purple]
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            TabView(selection: $currentIndex) {
+                ForEach(Array(lists.enumerated()), id: \.element.id) { index, list in
+                    NavigationLink {
+                        BookListDetailView(bookListId: list.id)
+                    } label: {
+                        bannerCard(list: list)
+                    }
+                    .buttonStyle(.plain)
+                    .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(height: 150)
+
+            // Page indicator
+            if lists.count > 1 {
+                HStack(spacing: 6) {
+                    ForEach(0..<lists.count, id: \.self) { index in
+                        Circle()
+                            .fill(index == currentIndex ? Color.accentColor : Color.secondary.opacity(0.3))
+                            .frame(width: 6, height: 6)
+                    }
+                }
+            }
+        }
+        .padding(.bottom, 8)
+    }
+
+    private func bannerCard(list: BookList) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            // Gradient background
+            LinearGradient(
+                colors: gradientColors(for: list.type),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            // Decorative icon
+            Image(systemName: list.type.icon)
+                .font(.system(size: 70))
+                .foregroundColor(.white.opacity(0.12))
+                .offset(x: 240, y: -15)
+
+            // Book covers preview
+            if let books = list.books?.prefix(3), !books.isEmpty {
+                HStack(spacing: -15) {
+                    ForEach(Array(books.enumerated()), id: \.element.id) { i, book in
+                        if let coverUrl = book.displayCoverUrl, let url = URL(string: coverUrl) {
+                            KFImage(url)
+                                .resizable()
+                                .aspectRatio(2/3, contentMode: .fill)
+                                .frame(width: 50, height: 75)
+                                .cornerRadius(4)
+                                .shadow(color: .black.opacity(0.3), radius: 3)
+                                .offset(y: CGFloat(i) * -4)
+                        }
+                    }
+                }
+                .offset(x: 250, y: -10)
+            }
+
+            // Text content
+            VStack(alignment: .leading, spacing: 6) {
+                // Type badge
+                Text(list.type.displayName)
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(Color.white.opacity(0.25))
+                    .cornerRadius(4)
+
+                Text(list.localizedTitle)
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+
+                if let subtitle = list.subtitle {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.85))
+                        .lineLimit(1)
+                }
+
+                HStack(spacing: 4) {
+                    Image(systemName: "book.closed.fill")
+                        .font(.caption2)
+                    Text("\(list.displayBookCount) books")
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                }
+                .foregroundColor(.white.opacity(0.75))
+            }
+            .padding(16)
+        }
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+}
+
+// MARK: - Category Menu
+
+private struct BookstoreCategoryMenu: View {
+    let categories: [Category]
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(categories.sorted(by: { ($0.bookCount) > ($1.bookCount) })) { category in
+                    NavigationLink {
+                        CategoryBooksListView(category: category)
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: category.systemIconName)
+                                .font(.system(size: 20))
+                                .foregroundColor(.accentColor)
+                                .frame(width: 44, height: 44)
+                                .background(Color.accentColor.opacity(0.1))
+                                .clipShape(Circle())
+
+                            Text(category.displayName)
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                        }
+                        .frame(width: 64)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Category Books List
+
+struct CategoryBooksListView: View {
+    let category: Category
+    @StateObject private var manager = BookListsManager.shared
+    @State private var books: [Book] = []
+    @State private var isLoading = true
+    @State private var currentPage = 1
+    @State private var hasMore = true
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                if isLoading && books.isEmpty {
+                    ProgressView()
+                        .padding(40)
+                } else if books.isEmpty {
+                    EmptyStateView(
+                        icon: "books.vertical",
+                        title: "No Books",
+                        message: "No books in this category yet."
+                    )
+                } else {
+                    ForEach(books) { book in
+                        NavigationLink {
+                            BookDetailView(book: book)
+                        } label: {
+                            CategoryBookRow(book: book)
+                        }
+                        .buttonStyle(.plain)
+                        .onAppear {
+                            if book.id == books.last?.id, hasMore, !isLoading {
+                                currentPage += 1
+                                Task { await loadBooks() }
+                            }
+                        }
+                    }
+
+                    if isLoading {
+                        ProgressView()
+                            .padding()
+                    }
+                }
+            }
+        }
+        .navigationTitle(category.displayName)
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            if books.isEmpty {
+                await loadBooks()
+            }
+        }
+    }
+
+    private func loadBooks() async {
+        isLoading = true
+        let newBooks = await manager.fetchBooks(inCategory: category.id, page: currentPage)
+        books.append(contentsOf: newBooks)
+        hasMore = newBooks.count == 20
+        isLoading = false
+    }
+}
+
+private struct CategoryBookRow: View {
+    let book: Book
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Cover
+            if let coverUrl = book.coverThumbUrl ?? book.coverUrl, let url = URL(string: coverUrl) {
+                KFImage(url)
+                    .placeholder { _ in coverPlaceholder }
+                    .fade(duration: 0.25)
+                    .resizable()
+                    .aspectRatio(2/3, contentMode: .fill)
+                    .frame(width: 60, height: 90)
+                    .cornerRadius(8)
+            } else {
+                coverPlaceholder
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(book.localizedTitle)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                    .foregroundColor(.primary)
+
+                Text(book.localizedAuthor)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+
+                if let desc = book.description, !desc.isEmpty {
+                    Text(desc)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+
+                if let wc = book.wordCount {
+                    HStack(spacing: 4) {
+                        Image(systemName: "doc.text")
+                            .font(.caption2)
+                        Text(formatWordCount(wc))
+                            .font(.caption2)
+                    }
+                    .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+    }
+
+    private var coverPlaceholder: some View {
+        Rectangle()
+            .fill(Color(.systemGray5))
+            .frame(width: 60, height: 90)
+            .cornerRadius(8)
+            .overlay(
+                Image(systemName: "book.closed.fill")
+                    .foregroundColor(.gray)
+            )
+    }
+
+    private func formatWordCount(_ wc: Int) -> String {
+        if wc >= 1_000_000 { return String(format: "%.1fM", Double(wc) / 1_000_000) }
+        if wc >= 1000 { return "\(wc / 1000)K words" }
+        return "\(wc) words"
     }
 }
 
@@ -233,7 +567,7 @@ private struct BookstoreBookRow: View {
                 }
 
                 // Info
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(book.localizedTitle)
                         .font(.subheadline)
                         .fontWeight(.medium)
@@ -245,12 +579,37 @@ private struct BookstoreBookRow: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
 
-                    // Genre tags
-                    if !book.localizedGenres.isEmpty {
-                        Text(book.localizedGenres.prefix(2).joined(separator: ", "))
+                    // Description snippet
+                    if let desc = book.description, !desc.isEmpty {
+                        Text(desc)
                             .font(.caption2)
                             .foregroundColor(.secondary)
-                            .lineLimit(1)
+                            .lineLimit(2)
+                    }
+
+                    // Word count + Rating
+                    HStack(spacing: 8) {
+                        if let wc = book.wordCount {
+                            HStack(spacing: 2) {
+                                Image(systemName: "doc.text")
+                                    .font(.system(size: 9))
+                                Text(formatWordCount(wc))
+                                    .font(.caption2)
+                            }
+                            .foregroundColor(.secondary)
+                        }
+
+                        if let rating = book.formattedRating {
+                            HStack(spacing: 2) {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.orange)
+                                Text(rating)
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundColor(.secondary)
+                        }
                     }
                 }
 
@@ -300,6 +659,12 @@ private struct BookstoreBookRow: View {
                 Image(systemName: "book.closed.fill")
                     .foregroundColor(.gray)
             )
+    }
+
+    private func formatWordCount(_ wc: Int) -> String {
+        if wc >= 1_000_000 { return String(format: "%.1fM", Double(wc) / 1_000_000) }
+        if wc >= 1000 { return "\(wc / 1000)K" }
+        return "\(wc)"
     }
 }
 
@@ -658,13 +1023,13 @@ struct FeaturedListCard: View {
             .frame(width: 160, height: 100)
             .cornerRadius(12)
 
-            Text(list.title)
+            Text(list.localizedTitle)
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .lineLimit(2)
                 .foregroundColor(.primary)
 
-            Text("discover.booksCount".localized(with: list.bookCount))
+            Text("discover.booksCount".localized(with: list.displayBookCount))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

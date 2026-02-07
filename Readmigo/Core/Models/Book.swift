@@ -95,6 +95,8 @@ struct Book: Codable, Identifiable, Equatable {
     let hasAudiobook: Bool?
     let audiobookId: String?
     let stylesUrl: String?  // SE native CSS URL
+    let doubanRating: Double?
+    let goodreadsRating: Double?
 
     // MARK: - Computed Properties
 
@@ -162,6 +164,25 @@ struct Book: Codable, Identifiable, Equatable {
         genres?.first
     }
 
+    /// Display rating based on locale: Douban for Chinese, Goodreads for English
+    var displayRating: Double? {
+        if LocaleHelper.isChineseLocale {
+            return doubanRating
+        }
+        return goodreadsRating
+    }
+
+    /// Formatted rating string with source label
+    var formattedRating: String? {
+        if LocaleHelper.isChineseLocale {
+            guard let rating = doubanRating else { return nil }
+            return String(format: "%.1f", rating)
+        } else {
+            guard let rating = goodreadsRating else { return nil }
+            return String(format: "%.2f", rating)
+        }
+    }
+
     static func == (lhs: Book, rhs: Book) -> Bool {
         lhs.id == rhs.id
     }
@@ -187,6 +208,7 @@ struct BookDetail: Codable, Identifiable {
         case subjects, genres, difficultyScore, fleschScore
         case wordCount, chapterCount, source, status, publishedAt, createdAt
         case hasAudiobook, audiobookId, stylesUrl
+        case doubanRating, goodreadsRating
     }
 
     init(from decoder: Decoder) throws {
@@ -219,7 +241,9 @@ struct BookDetail: Codable, Identifiable {
             createdAt: try container.decodeIfPresent(Date.self, forKey: .createdAt),
             hasAudiobook: try container.decodeIfPresent(Bool.self, forKey: .hasAudiobook),
             audiobookId: try container.decodeIfPresent(String.self, forKey: .audiobookId),
-            stylesUrl: try container.decodeIfPresent(String.self, forKey: .stylesUrl)
+            stylesUrl: try container.decodeIfPresent(String.self, forKey: .stylesUrl),
+            doubanRating: try container.decodeIfPresent(Double.self, forKey: .doubanRating),
+            goodreadsRating: try container.decodeIfPresent(Double.self, forKey: .goodreadsRating)
         )
     }
 
@@ -251,6 +275,8 @@ struct BookDetail: Codable, Identifiable {
         try container.encodeIfPresent(book.hasAudiobook, forKey: .hasAudiobook)
         try container.encodeIfPresent(book.audiobookId, forKey: .audiobookId)
         try container.encodeIfPresent(book.stylesUrl, forKey: .stylesUrl)
+        try container.encodeIfPresent(book.doubanRating, forKey: .doubanRating)
+        try container.encodeIfPresent(book.goodreadsRating, forKey: .goodreadsRating)
     }
 
     // Convenience initializer for direct construction

@@ -1,4 +1,5 @@
 import SwiftUI
+import Kingfisher
 
 struct CategoriesView: View {
     @StateObject private var manager = BookListsManager.shared
@@ -276,5 +277,49 @@ struct SubcategoryChip: View {
         .background(Color(.systemBackground))
         .cornerRadius(20)
         .shadow(color: Color.black.opacity(0.05), radius: 3)
+    }
+}
+
+// MARK: - Book Grid Item (for Book type)
+
+struct BookGridItem: View {
+    let book: Book
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let coverUrl = book.coverThumbUrl ?? book.coverUrl, let url = URL(string: coverUrl) {
+                KFImage(url)
+                    .placeholder { _ in coverPlaceholder }
+                    .fade(duration: 0.25)
+                    .resizable()
+                    .aspectRatio(2/3, contentMode: .fill)
+                    .cornerRadius(8)
+                    .clipped()
+            } else {
+                coverPlaceholder
+            }
+
+            Text(book.localizedTitle)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .lineLimit(1)
+
+            Text(book.localizedAuthor)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+        }
+    }
+
+    private var coverPlaceholder: some View {
+        Rectangle()
+            .fill(Color.gray.opacity(0.15))
+            .aspectRatio(2/3, contentMode: .fill)
+            .cornerRadius(8)
+            .overlay {
+                Image(systemName: "book.closed")
+                    .font(.title2)
+                    .foregroundColor(.gray.opacity(0.5))
+            }
     }
 }
