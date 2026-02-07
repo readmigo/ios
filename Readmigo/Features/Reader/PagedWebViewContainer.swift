@@ -27,6 +27,7 @@ struct PagedWebViewContainer: View {
     let onTap: () -> Void
     let onPageChange: ((Int, Int) -> Void)?
     let onContentReady: () -> Void
+    var onParagraphLongPress: ((Int, String) -> Void)? = nil
 
     // Typography settings
     var lineSpacing: LineSpacing
@@ -127,6 +128,7 @@ struct PagedWebViewContainer: View {
                                     }
                                 }
                             },
+                            onParagraphLongPress: chapterView.isCurrent ? onParagraphLongPress : nil,
                             lineSpacing: lineSpacing,
                             letterSpacing: letterSpacing,
                             wordSpacing: wordSpacing,

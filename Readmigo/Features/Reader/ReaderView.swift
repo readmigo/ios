@@ -86,6 +86,11 @@ struct ReaderView: View {
                                 if viewModel.hasNextChapter {
                                     Task { await viewModel.goToNextChapter() }
                                 }
+                            },
+                            onParagraphLongPress: { paragraphIndex, text in
+                                translationParagraphIndex = paragraphIndex
+                                translationParagraphText = text
+                                showTranslationSheet = true
                             }
                         )
                     } else {

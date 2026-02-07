@@ -19,6 +19,7 @@ struct PageTurnReaderView: View {
     var onPageChange: ((Int, Int) -> Void)? = nil
     var onReachChapterStart: (() -> Void)? = nil
     var onReachChapterEnd: (() -> Void)? = nil
+    var onParagraphLongPress: ((Int, String) -> Void)? = nil
 
     @StateObject private var engine = PageTurnEngine()
     @State private var pages: [PageContent] = []
@@ -85,13 +86,16 @@ struct PageTurnReaderView: View {
                     }
 
                     // Page content
-                    ForEach(pages[index].paragraphs, id: \.self) { paragraph in
-                        Text(paragraph)
+                    ForEach(pages[index].paragraphs) { paragraph in
+                        Text(paragraph.text)
                             .font(.custom(font.rawValue, size: fontSize.textSize))
                             .foregroundColor(theme.textColor)
                             .lineSpacing(fontSize.textSize * (fontSize.lineHeight - 1))
                             .padding(.bottom, 16)
                             .textSelection(.disabled)
+                            .onLongPressGesture(minimumDuration: 0.5) {
+                                onParagraphLongPress?(paragraph.index, paragraph.text)
+                            }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -154,10 +158,13 @@ struct PageTurnReaderView: View {
         let linesPerPage = Int(contentHeight / lineHeight)
 
         // 将 HTML 内容转换为纯文本段落
-        let paragraphs = extractParagraphs(from: content.htmlContent)
+        let paragraphTexts = extractParagraphs(from: content.htmlContent)
+
+        // 创建带索引的段落
+        let indexedParagraphs = paragraphTexts.enumerated().map { IndexedParagraph(index: $0.offset, text: $0.element) }
 
         // 分页
-        var currentPage: [String] = []
+        var currentPage: [IndexedParagraph] = []
         var currentLineCount = 0
         var allPages: [PageContent] = []
 
@@ -165,8 +172,8 @@ struct PageTurnReaderView: View {
         let titleLines = 3
         var isFirstPage = true
 
-        for paragraph in paragraphs {
-            let paragraphLines = estimateLines(for: paragraph, charsPerLine: charsPerLine)
+        for paragraph in indexedParagraphs {
+            let paragraphLines = estimateLines(for: paragraph.text, charsPerLine: charsPerLine)
             let availableLines = isFirstPage ? (linesPerPage - titleLines) : linesPerPage
 
             if currentLineCount + paragraphLines > availableLines && !currentPage.isEmpty {
@@ -188,7 +195,7 @@ struct PageTurnReaderView: View {
 
         // 确保至少有一页
         if allPages.isEmpty {
-            allPages.append(PageContent(paragraphs: ["..."]))
+            allPages.append(PageContent(paragraphs: [IndexedParagraph(index: 0, text: "...")]))
         }
 
         pages = allPages
@@ -236,7 +243,21 @@ struct PageTurnReaderView: View {
 
 struct PageContent: Identifiable {
     let id = UUID()
-    let paragraphs: [String]
+    let paragraphs: [IndexedParagraph]
+}
+
+struct IndexedParagraph: Identifiable, Hashable {
+    let id = UUID()
+    let index: Int
+    let text: String
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    static func == (lhs: IndexedParagraph, rhs: IndexedParagraph) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 // MARK: - String Extension for HTML Decoding

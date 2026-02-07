@@ -23,6 +23,11 @@ struct EnhancedReaderView: View {
     @State private var hasAudiobook = false
     @State private var linkedAudiobook: Audiobook?
 
+    // Paragraph translation
+    @State private var showTranslationSheet = false
+    @State private var translationParagraphIndex = 0
+    @State private var translationParagraphText = ""
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
 
@@ -183,6 +188,19 @@ struct EnhancedReaderView: View {
         .fullScreenCover(isPresented: $showAudiobookPlayer) {
             AudiobookPlayerView()
         }
+        .sheet(isPresented: $showTranslationSheet) {
+            TranslationSheet(
+                bookId: viewModel.book.id,
+                chapterId: viewModel.currentChapter?.id ?? "",
+                paragraphIndex: translationParagraphIndex,
+                originalText: translationParagraphText,
+                onDismiss: {
+                    showTranslationSheet = false
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.hidden)
+        }
         .task {
             // Load book detail first if not already loaded
             await viewModel.loadBookDetailIfNeeded()
@@ -290,6 +308,11 @@ struct EnhancedReaderView: View {
                     onContentReady: {
                         // Content is ready and visible, hide loading overlay
                         viewModel.isLoading = false
+                    },
+                    onParagraphLongPress: { paragraphIndex, text in
+                        translationParagraphIndex = paragraphIndex
+                        translationParagraphText = text
+                        showTranslationSheet = true
                     },
                     // Advanced typography settings
                     lineSpacing: themeManager.lineSpacing,

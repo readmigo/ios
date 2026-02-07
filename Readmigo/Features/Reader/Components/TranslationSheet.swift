@@ -20,95 +20,35 @@ struct TranslationSheet: View {
                 .fill(Color.secondary.opacity(0.3))
                 .frame(width: 36, height: 5)
                 .padding(.top, 8)
-                .padding(.bottom, 12)
-
-            // Header
-            HStack {
-                Text("translation.title".localized)
-                    .font(.headline)
-
-                Spacer()
-
-                Button(action: onDismiss) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.bottom, 12)
-
-            Divider()
+                .padding(.bottom, 16)
 
             // Content
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Original text section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("translation.original".localized)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.secondary)
-
-                        Text(originalText)
+                VStack(alignment: .leading, spacing: 0) {
+                    if isLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .padding()
+                            Spacer()
+                        }
+                    } else if let errorMessage = errorMessage {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            Text(errorMessage)
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                    } else if let translation = translation {
+                        Text(translation.translation)
                             .font(.body)
                             .foregroundColor(.primary)
                             .lineSpacing(4)
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-
-                    // Translation section
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("translation.translated".localized)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.secondary)
-
-                            Spacer()
-
-                            if let locale = translation?.locale {
-                                Text(localeName(for: locale))
-                                    .font(.caption)
-                                    .foregroundColor(.blue)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Color.blue.opacity(0.1))
-                                    .cornerRadius(8)
-                            }
-                        }
-
-                        if isLoading {
-                            HStack {
-                                Spacer()
-                                ProgressView()
-                                    .padding()
-                                Spacer()
-                            }
-                        } else if let errorMessage = errorMessage {
-                            HStack {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.orange)
-                                Text(errorMessage)
-                                    .font(.body)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding()
-                        } else if let translation = translation {
-                            Text(translation.translation)
-                                .font(.body)
-                                .foregroundColor(.primary)
-                                .lineSpacing(4)
-                        }
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.blue.opacity(0.05))
-                    .cornerRadius(12)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
             }
         }
