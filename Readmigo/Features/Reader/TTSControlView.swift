@@ -45,8 +45,12 @@ struct TTSControlView: View {
 
                 Spacer()
 
-                // Time remaining
-                if let timeRemaining = ttsEngine.progress?.formattedTimeRemaining {
+                // Paragraph progress or time remaining
+                if let rap = ttsEngine.readAloudProgress {
+                    Text("\(rap.currentParagraphIndex + 1)/\(rap.totalParagraphs)  ·  \(rap.formattedTimeRemaining)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else if let timeRemaining = ttsEngine.progress?.formattedTimeRemaining {
                     Text(timeRemaining)
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -89,7 +93,7 @@ struct TTSControlView: View {
 
                         Rectangle()
                             .fill(Color.accentColor)
-                            .frame(width: geometry.size.width * (ttsEngine.progress?.progressPercentage ?? 0), height: 3)
+                            .frame(width: geometry.size.width * progressPercent, height: 3)
                     }
                     .cornerRadius(1.5)
                 }
@@ -141,6 +145,13 @@ struct TTSControlView: View {
 
     private var progressSection: some View {
         VStack(spacing: 8) {
+            // Paragraph indicator
+            if let rap = ttsEngine.readAloudProgress {
+                Text("Paragraph \(rap.currentParagraphIndex + 1) of \(rap.totalParagraphs)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             // Progress bar
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
@@ -150,14 +161,15 @@ struct TTSControlView: View {
 
                     Rectangle()
                         .fill(Color.accentColor)
-                        .frame(width: geometry.size.width * (ttsEngine.progress?.progressPercentage ?? 0), height: 4)
+                        .frame(width: geometry.size.width * progressPercent, height: 4)
                 }
                 .cornerRadius(2)
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onEnded { value in
                             let percentage = value.location.x / geometry.size.width
-                            // Seek to position (implement seeking logic)
+                            let targetParagraph = Int(Double(ttsEngine.readAloudProgress?.totalParagraphs ?? 1) * percentage)
+                            ttsEngine.goToParagraph(targetParagraph)
                         }
                 )
             }
@@ -165,13 +177,23 @@ struct TTSControlView: View {
 
             // Time labels
             HStack {
-                Text(formatTime(elapsed: ttsEngine.progress?.characterOffset ?? 0))
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                if let rap = ttsEngine.readAloudProgress {
+                    Text(rap.formattedTimeRemaining)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                } else {
+                    Text(formatTime(elapsed: ttsEngine.progress?.characterOffset ?? 0))
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
 
                 Spacer()
 
-                if let remaining = ttsEngine.progress?.formattedTimeRemaining {
+                if let rap = ttsEngine.readAloudProgress {
+                    Text("\(Int(rap.chapterPercent * 100))%")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                } else if let remaining = ttsEngine.progress?.formattedTimeRemaining {
                     Text("-\(remaining)")
                         .font(.caption2)
                         .foregroundColor(.secondary)
@@ -370,6 +392,14 @@ struct TTSControlView: View {
             }
         }
         .padding(.top, 8)
+    }
+
+    /// Unified progress: prefer readAloudProgress, fall back to legacy progress.
+    private var progressPercent: Double {
+        if let rap = ttsEngine.readAloudProgress {
+            return rap.chapterPercent
+        }
+        return ttsEngine.progress?.progressPercentage ?? 0
     }
 
     private var sleepTimerText: String {

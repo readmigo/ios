@@ -269,6 +269,11 @@ enum APIEndpoints {
     static let browsingHistoryReorder = "/browsing-history/reorder"
     static let browsingHistorySync = "/browsing-history/sync"
 
+    // Chapter Text (plain text paragraphs for TTS)
+    static func chapterText(_ bookId: String, _ chapterId: String) -> String {
+        "/books/\(bookId)/chapters/\(chapterId)/text"
+    }
+
     // Chapter Translations
     static func chapterTranslationAvailable(_ bookId: String, _ chapterId: String) -> String {
         "/books/\(bookId)/chapters/\(chapterId)/translations/available"

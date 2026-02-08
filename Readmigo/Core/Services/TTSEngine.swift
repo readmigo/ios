@@ -13,11 +13,26 @@ class TTSEngine: NSObject, ObservableObject {
     @Published var settings: TTSSettings = .default
     @Published var availableVoices: [TTSVoice] = []
     @Published var currentVoice: TTSVoice?
-    @Published var progress: TTSProgress?
+    @Published var readAloudProgress: ReadAloudProgress?
     @Published var currentHighlightRange: NSRange?
     @Published var currentSentenceText: String?
     @Published var currentWordText: String?
     @Published var sleepTimerRemaining: TimeInterval?
+    @Published var currentParagraphIndex: Int = 0
+
+    // MARK: - Legacy Published (kept for TTSControlView compatibility)
+
+    var progress: TTSProgress? {
+        guard let p = readAloudProgress else { return nil }
+        return TTSProgress(
+            currentWord: currentWordText,
+            currentSentence: currentSentenceText,
+            currentParagraph: p.currentParagraphIndex,
+            totalParagraphs: p.totalParagraphs,
+            characterOffset: p.globalSentenceIndex,
+            totalCharacters: p.totalSentences
+        )
+    }
 
     // MARK: - Callbacks
 
@@ -27,13 +42,15 @@ class TTSEngine: NSObject, ObservableObject {
     var onChapterEnd: (() -> Void)?
     var onBookEnd: (() -> Void)?
 
+    // MARK: - Paragraph Structure
+
+    private var paragraphs: [ChapterParagraph] = []
+    private var paragraphSentences: [[String]] = []  // sentences per paragraph
+    private var currentSentenceInParagraph: Int = 0
+
     // MARK: - Private Properties
 
     private let synthesizer = AVSpeechSynthesizer()
-    private var currentUtterances: [AVSpeechUtterance] = []
-    private var currentUtteranceIndex = 0
-    private var sentences: [String] = []
-    private var currentSentenceIndex = 0
     private var chapterId: String?
     private var sleepTimer: Timer?
     private var sleepTimerEndTime: Date?
@@ -117,9 +134,11 @@ class TTSEngine: NSObject, ObservableObject {
         nowPlayingInfo[MPMediaItemPropertyArtist] = "Readmigo"
         nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = state == .playing ? 1.0 : 0.0
 
-        if let progress = progress {
-            nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = Double(progress.characterOffset) / 15.0
-            nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = Double(progress.totalCharacters) / 15.0
+        if let p = readAloudProgress {
+            let elapsed = Double(p.globalSentenceIndex) * 3.0
+            let total = Double(p.totalSentences) * 3.0
+            nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsed
+            nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = total
         }
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
@@ -144,7 +163,6 @@ class TTSEngine: NSObject, ObservableObject {
         settings = newSettings
         saveSettings()
 
-        // Apply voice change if needed
         if let voiceId = newSettings.voiceIdentifier {
             currentVoice = availableVoices.first { $0.id == voiceId }
         }
@@ -159,7 +177,6 @@ class TTSEngine: NSObject, ObservableObject {
             .map { TTSVoice.fromAVVoice($0) }
             .sorted { $0.quality.rawValue > $1.quality.rawValue }
 
-        // Set default voice
         if let voiceId = settings.voiceIdentifier,
            let voice = availableVoices.first(where: { $0.id == voiceId }) {
             currentVoice = voice
@@ -183,62 +200,84 @@ class TTSEngine: NSObject, ObservableObject {
             .sorted { $0.quality.rawValue > $1.quality.rawValue }
     }
 
-    // MARK: - Playback Control
+    // MARK: - Playback Control (Paragraph-based)
 
-    func speak(text: String, chapterId: String, bookTitle: String, chapterTitle: String) {
+    /// Start reading from paragraph array (new API).
+    func speakParagraphs(_ paragraphs: [ChapterParagraph], chapterId: String, bookTitle: String, chapterTitle: String) {
         stop()
 
         self.chapterId = chapterId
-        self.sentences = splitIntoSentences(text)
-        self.currentSentenceIndex = 0
+        self.paragraphs = paragraphs
+        self.paragraphSentences = paragraphs.map { splitIntoSentences($0.text) }
+        self.currentParagraphIndex = 0
+        self.currentSentenceInParagraph = 0
 
-        if sentences.isEmpty { return }
+        guard !paragraphs.isEmpty else { return }
 
         state = .playing
         speakCurrentSentence()
         updateNowPlayingInfo(title: bookTitle, chapter: chapterTitle)
-
-        // Update progress
-        updateProgress(text: text)
+        updateReadAloudProgress()
     }
 
-    func speakFromPosition(_ position: Int, text: String, chapterId: String, bookTitle: String, chapterTitle: String) {
+    /// Start reading from a specific paragraph index.
+    func speakFromParagraph(_ paragraphIndex: Int, paragraphs: [ChapterParagraph], chapterId: String, bookTitle: String, chapterTitle: String) {
         stop()
 
         self.chapterId = chapterId
-        self.sentences = splitIntoSentences(text)
+        self.paragraphs = paragraphs
+        self.paragraphSentences = paragraphs.map { splitIntoSentences($0.text) }
+        self.currentParagraphIndex = min(paragraphIndex, paragraphs.count - 1)
+        self.currentSentenceInParagraph = 0
 
-        // Find sentence containing position
-        var charCount = 0
-        for (index, sentence) in sentences.enumerated() {
-            if charCount + sentence.count >= position {
-                self.currentSentenceIndex = index
-                break
-            }
-            charCount += sentence.count
-        }
+        guard !paragraphs.isEmpty else { return }
 
         state = .playing
         speakCurrentSentence()
         updateNowPlayingInfo(title: bookTitle, chapter: chapterTitle)
-        updateProgress(text: text)
+        updateReadAloudProgress()
+    }
+
+    /// Legacy: start reading from flat text (kept for backward compatibility).
+    func speak(text: String, chapterId: String, bookTitle: String, chapterTitle: String) {
+        let lines = text.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        let paras = lines.enumerated().map { ChapterParagraph(index: $0.offset, text: $0.element) }
+        speakParagraphs(paras, chapterId: chapterId, bookTitle: bookTitle, chapterTitle: chapterTitle)
     }
 
     private func speakCurrentSentence() {
-        guard currentSentenceIndex < sentences.count else {
+        guard currentParagraphIndex < paragraphSentences.count else {
             onChapterEnd?()
             state = .idle
             return
         }
 
-        let sentence = sentences[currentSentenceIndex]
+        let sentencesInParagraph = paragraphSentences[currentParagraphIndex]
+
+        // If we've finished all sentences in this paragraph, advance
+        if currentSentenceInParagraph >= sentencesInParagraph.count {
+            currentParagraphIndex += 1
+            currentSentenceInParagraph = 0
+            onParagraphChange?(currentParagraphIndex)
+
+            // Recurse to handle next paragraph (or chapter end)
+            speakCurrentSentence()
+            return
+        }
+
+        let sentence = sentencesInParagraph[currentSentenceInParagraph]
         currentSentenceText = sentence
-        onSentenceChange?(currentSentenceIndex, sentence)
+        onSentenceChange?(globalSentenceIndex, sentence)
 
         let utterance = AVSpeechUtterance(string: sentence)
         utterance.rate = settings.actualRate
         utterance.pitchMultiplier = settings.pitch
         utterance.volume = settings.volume
+
+        // Add extra pause between paragraphs (at first sentence of new paragraph)
+        if currentSentenceInParagraph == 0 && currentParagraphIndex > 0 {
+            utterance.preUtteranceDelay = settings.pauseBetweenParagraphs
+        }
         utterance.postUtteranceDelay = settings.pauseBetweenSentences
 
         if let voiceId = settings.voiceIdentifier,
@@ -249,6 +288,7 @@ class TTSEngine: NSObject, ObservableObject {
         }
 
         synthesizer.speak(utterance)
+        updateReadAloudProgress()
     }
 
     private func splitIntoSentences(_ text: String) -> [String] {
@@ -257,7 +297,6 @@ class TTSEngine: NSObject, ObservableObject {
         tagger.string = text
 
         let range = NSRange(location: 0, length: text.utf16.count)
-        var currentSentence = ""
 
         tagger.enumerateTags(in: range, unit: .sentence, scheme: .tokenType, options: []) { _, tokenRange, _ in
             if let range = Range(tokenRange, in: text) {
@@ -268,7 +307,6 @@ class TTSEngine: NSObject, ObservableObject {
             }
         }
 
-        // Fallback if no sentences detected
         if sentences.isEmpty && !text.isEmpty {
             sentences = [text]
         }
@@ -293,11 +331,14 @@ class TTSEngine: NSObject, ObservableObject {
     func stop() {
         synthesizer.stopSpeaking(at: .immediate)
         state = .idle
-        currentSentenceIndex = 0
-        sentences = []
+        paragraphs = []
+        paragraphSentences = []
+        currentParagraphIndex = 0
+        currentSentenceInParagraph = 0
         currentHighlightRange = nil
         currentSentenceText = nil
         currentWordText = nil
+        readAloudProgress = nil
         stopSleepTimer()
     }
 
@@ -316,39 +357,113 @@ class TTSEngine: NSObject, ObservableObject {
 
     func nextSentence() {
         synthesizer.stopSpeaking(at: .immediate)
-        currentSentenceIndex = min(currentSentenceIndex + 1, sentences.count - 1)
+        currentSentenceInParagraph += 1
+
+        // Check if we need to advance to next paragraph
+        if currentParagraphIndex < paragraphSentences.count &&
+           currentSentenceInParagraph >= paragraphSentences[currentParagraphIndex].count {
+            currentParagraphIndex += 1
+            currentSentenceInParagraph = 0
+            onParagraphChange?(currentParagraphIndex)
+        }
+
         state = .playing
         speakCurrentSentence()
     }
 
     func previousSentence() {
         synthesizer.stopSpeaking(at: .immediate)
-        currentSentenceIndex = max(currentSentenceIndex - 1, 0)
+
+        if currentSentenceInParagraph > 0 {
+            currentSentenceInParagraph -= 1
+        } else if currentParagraphIndex > 0 {
+            currentParagraphIndex -= 1
+            currentSentenceInParagraph = max(0, paragraphSentences[currentParagraphIndex].count - 1)
+            onParagraphChange?(currentParagraphIndex)
+        }
+
+        state = .playing
+        speakCurrentSentence()
+    }
+
+    func nextParagraph() {
+        synthesizer.stopSpeaking(at: .immediate)
+        currentParagraphIndex = min(currentParagraphIndex + 1, paragraphs.count - 1)
+        currentSentenceInParagraph = 0
+        onParagraphChange?(currentParagraphIndex)
+        state = .playing
+        speakCurrentSentence()
+    }
+
+    func previousParagraph() {
+        synthesizer.stopSpeaking(at: .immediate)
+        currentParagraphIndex = max(currentParagraphIndex - 1, 0)
+        currentSentenceInParagraph = 0
+        onParagraphChange?(currentParagraphIndex)
+        state = .playing
+        speakCurrentSentence()
+    }
+
+    func goToParagraph(_ index: Int) {
+        guard index >= 0 && index < paragraphs.count else { return }
+        synthesizer.stopSpeaking(at: .immediate)
+        currentParagraphIndex = index
+        currentSentenceInParagraph = 0
+        onParagraphChange?(currentParagraphIndex)
         state = .playing
         speakCurrentSentence()
     }
 
     func skipForward() {
-        // Skip ~15 seconds worth of sentences (approximately 3-4 sentences)
         synthesizer.stopSpeaking(at: .immediate)
-        currentSentenceIndex = min(currentSentenceIndex + 4, sentences.count - 1)
+        // Skip ~15 seconds (~4 sentences)
+        for _ in 0..<4 {
+            currentSentenceInParagraph += 1
+            if currentParagraphIndex < paragraphSentences.count &&
+               currentSentenceInParagraph >= paragraphSentences[currentParagraphIndex].count {
+                currentParagraphIndex += 1
+                currentSentenceInParagraph = 0
+                if currentParagraphIndex >= paragraphs.count { break }
+            }
+        }
+        currentParagraphIndex = min(currentParagraphIndex, paragraphs.count - 1)
+        onParagraphChange?(currentParagraphIndex)
         state = .playing
         speakCurrentSentence()
     }
 
     func skipBackward() {
         synthesizer.stopSpeaking(at: .immediate)
-        currentSentenceIndex = max(currentSentenceIndex - 4, 0)
+        for _ in 0..<4 {
+            if currentSentenceInParagraph > 0 {
+                currentSentenceInParagraph -= 1
+            } else if currentParagraphIndex > 0 {
+                currentParagraphIndex -= 1
+                currentSentenceInParagraph = max(0, paragraphSentences[currentParagraphIndex].count - 1)
+            } else {
+                break
+            }
+        }
+        onParagraphChange?(currentParagraphIndex)
         state = .playing
         speakCurrentSentence()
     }
 
     func goToSentence(_ index: Int) {
-        guard index >= 0 && index < sentences.count else { return }
-        synthesizer.stopSpeaking(at: .immediate)
-        currentSentenceIndex = index
-        state = .playing
-        speakCurrentSentence()
+        // Legacy: map global sentence index to paragraph+sentence
+        var remaining = index
+        for (pIdx, sentences) in paragraphSentences.enumerated() {
+            if remaining < sentences.count {
+                currentParagraphIndex = pIdx
+                currentSentenceInParagraph = remaining
+                synthesizer.stopSpeaking(at: .immediate)
+                onParagraphChange?(currentParagraphIndex)
+                state = .playing
+                speakCurrentSentence()
+                return
+            }
+            remaining -= sentences.count
+        }
     }
 
     // MARK: - Speed Control
@@ -357,11 +472,12 @@ class TTSEngine: NSObject, ObservableObject {
         settings.rate = rate
         saveSettings()
 
-        // If currently speaking, restart with new rate
         if state == .playing {
-            let currentIndex = currentSentenceIndex
+            let pIdx = currentParagraphIndex
+            let sIdx = currentSentenceInParagraph
             synthesizer.stopSpeaking(at: .immediate)
-            currentSentenceIndex = currentIndex
+            currentParagraphIndex = pIdx
+            currentSentenceInParagraph = sIdx
             speakCurrentSentence()
         }
     }
@@ -390,7 +506,6 @@ class TTSEngine: NSObject, ObservableObject {
         if option == .endOfChapter {
             settings.sleepTimerMinutes = -1
             sleepTimerRemaining = nil
-            // Will stop at chapter end via callback
             return
         }
 
@@ -427,23 +542,44 @@ class TTSEngine: NSObject, ObservableObject {
 
     // MARK: - Progress
 
-    private func updateProgress(text: String) {
-        let totalChars = text.count
-        var currentOffset = 0
-
-        for i in 0..<currentSentenceIndex {
-            if i < sentences.count {
-                currentOffset += sentences[i].count
+    /// Current global sentence index across all paragraphs.
+    var globalSentenceIndex: Int {
+        var index = 0
+        for i in 0..<currentParagraphIndex {
+            if i < paragraphSentences.count {
+                index += paragraphSentences[i].count
             }
         }
+        return index + currentSentenceInParagraph
+    }
 
-        progress = TTSProgress(
-            currentWord: currentWordText,
-            currentSentence: currentSentenceText,
-            currentParagraph: 0,
-            totalParagraphs: 1,
-            characterOffset: currentOffset,
-            totalCharacters: totalChars
+    /// Total sentences across all paragraphs.
+    var totalSentences: Int {
+        paragraphSentences.reduce(0) { $0 + $1.count }
+    }
+
+    private func updateReadAloudProgress() {
+        let sentencesInCurrent = currentParagraphIndex < paragraphSentences.count
+            ? paragraphSentences[currentParagraphIndex].count : 0
+
+        readAloudProgress = ReadAloudProgress(
+            currentParagraphIndex: currentParagraphIndex,
+            totalParagraphs: paragraphs.count,
+            currentSentenceInParagraph: currentSentenceInParagraph,
+            totalSentencesInParagraph: sentencesInCurrent,
+            globalSentenceIndex: globalSentenceIndex,
+            totalSentences: totalSentences
+        )
+    }
+
+    /// Current reading position for persistence.
+    func currentPosition(bookId: String) -> ReadAloudPosition? {
+        guard let chapterId = chapterId else { return nil }
+        return ReadAloudPosition(
+            bookId: bookId,
+            chapterId: chapterId,
+            paragraphIndex: currentParagraphIndex,
+            sentenceIndex: currentSentenceInParagraph
         )
     }
 }
@@ -459,21 +595,19 @@ extension TTSEngine: AVSpeechSynthesizerDelegate {
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         Task { @MainActor in
-            // Move to next sentence
-            currentSentenceIndex += 1
+            currentSentenceInParagraph += 1
 
-            // Check if end of chapter sleep timer
-            if settings.sleepTimerMinutes == -1 && currentSentenceIndex >= sentences.count {
+            // Check end-of-chapter sleep timer
+            let isLastSentence = currentParagraphIndex >= paragraphSentences.count ||
+                (currentParagraphIndex == paragraphSentences.count - 1 &&
+                 currentSentenceInParagraph >= paragraphSentences[currentParagraphIndex].count)
+
+            if settings.sleepTimerMinutes == -1 && isLastSentence {
                 stop()
                 return
             }
 
-            if currentSentenceIndex < sentences.count {
-                speakCurrentSentence()
-            } else {
-                onChapterEnd?()
-                state = .idle
-            }
+            speakCurrentSentence()
         }
     }
 
@@ -491,7 +625,6 @@ extension TTSEngine: AVSpeechSynthesizerDelegate {
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, willSpeakRangeOfSpeechString characterRange: NSRange, utterance: AVSpeechUtterance) {
         Task { @MainActor in
-            // Highlight current word
             if settings.highlightMode == .word {
                 currentHighlightRange = characterRange
                 let nsString = utterance.speechString as NSString
@@ -504,7 +637,7 @@ extension TTSEngine: AVSpeechSynthesizerDelegate {
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         Task { @MainActor in
-            // Don't change state here as it might be intentional stop
+            // Intentional stop — no state change
         }
     }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 struct EnhancedReaderView: View {
     @StateObject var viewModel: ReaderViewModel
     @StateObject private var ttsEngine = TTSEngine.shared
+    @StateObject private var readAloudCoordinator = ReadAloudCoordinator()
     @StateObject private var bookmarkManager = BookmarkManager.shared
     @StateObject private var themeManager = ThemeManager.shared
     @StateObject private var audiobookPlayer = AudiobookPlayer.shared
@@ -104,7 +105,10 @@ struct EnhancedReaderView: View {
                         TTSControlView(
                             ttsEngine: ttsEngine,
                             isExpanded: $isTTSExpanded,
-                            onClose: { showTTSControls = false }
+                            onClose: {
+                                readAloudCoordinator.stop()
+                                showTTSControls = false
+                            }
                         )
                         .transition(.move(edge: .bottom))
                     }
@@ -211,9 +215,18 @@ struct EnhancedReaderView: View {
                 // Auto-download entire book in background
                 await triggerAutoDownloadBook()
             }
+
+            // Set up read-aloud coordinator callbacks
+            readAloudCoordinator.onChapterAdvance = { newChapterId in
+                if let index = viewModel.chapters.firstIndex(where: { $0.id == newChapterId }) {
+                    Task {
+                        await viewModel.loadChapter(at: index)
+                    }
+                }
+            }
         }
         .onDisappear {
-            ttsEngine.stop()
+            readAloudCoordinator.stop()
             viewModel.saveLocalProgress()
             // Sync to server if authenticated
             Task {
@@ -615,14 +628,16 @@ struct EnhancedReaderView: View {
     }
 
     private func startTTS() {
-        guard let content = viewModel.chapterContent else { return }
+        guard !viewModel.chapters.isEmpty else { return }
         showTTSControls = true
-        ttsEngine.speak(
-            text: content.htmlContent,
-            chapterId: content.id,
-            bookTitle: viewModel.book.title,
-            chapterTitle: content.title
-        )
+        Task {
+            await readAloudCoordinator.start(
+                bookId: viewModel.book.id,
+                bookTitle: viewModel.book.title,
+                chapters: viewModel.chapters,
+                chapterIndex: viewModel.currentChapterIndex
+            )
+        }
     }
 
     // MARK: - Audiobook & Whispersync Methods
