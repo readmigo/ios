@@ -25,3 +25,13 @@
 "profile.gender.other" = "その他";
 "profile.gender.prefer_not_to_say" = "回答しない";
 "profile.gender.unknown" = "不明";
+
+/* Translation */
+"translation.title" = "翻訳";
+"translation.original" = "原文";
+"translation.translated" = "翻訳";
+"translation.notNeeded" = "英語のため翻訳不要";
+"translation.error.notAvailable" = "翻訳が利用できません";
+"translation.error.unsupportedLocale" = "この言語はサポートされていません";
+"translation.error.network" = "ネットワークエラー";
+"translation.error.unknown" = "翻訳の読み込みに失敗しました";
