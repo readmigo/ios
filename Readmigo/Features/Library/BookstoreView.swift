@@ -82,8 +82,12 @@ struct BookstoreView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(40)
         } else {
+            ScrollViewReader { scrollProxy in
             ScrollView {
                 LazyVStack(spacing: 8) {
+                    // Scroll anchor
+                    Color.clear.frame(height: 0).id("bookstoreTop")
+
                     // Hero Banner Carousel
                     if bannerLists.count > 0 {
                         BookstoreHeroBanner(
@@ -153,6 +157,12 @@ struct BookstoreView: View {
             }
             .elegantRefreshable {
                 await refreshAll()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .bookstoreTabDoubleTapped)) { _ in
+                withAnimation {
+                    scrollProxy.scrollTo("bookstoreTop", anchor: .top)
+                }
+            }
             }
         }
     }

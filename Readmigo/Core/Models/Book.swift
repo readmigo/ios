@@ -164,23 +164,21 @@ struct Book: Codable, Identifiable, Equatable {
         genres?.first
     }
 
-    /// Display rating based on locale: Douban for Chinese, Goodreads for English
+    /// Display rating: Goodreads for English books, Douban for Chinese books.
+    /// Currently all books are English, so prefer Goodreads with Douban fallback.
     var displayRating: Double? {
-        if LocaleHelper.isChineseLocale {
-            return doubanRating
-        }
-        return goodreadsRating
+        goodreadsRating ?? doubanRating
     }
 
-    /// Formatted rating string with source label
+    /// Formatted rating string
     var formattedRating: String? {
-        if LocaleHelper.isChineseLocale {
-            guard let rating = doubanRating else { return nil }
-            return String(format: "%.1f", rating)
-        } else {
-            guard let rating = goodreadsRating else { return nil }
+        if let rating = goodreadsRating {
             return String(format: "%.2f", rating)
         }
+        if let rating = doubanRating {
+            return String(format: "%.1f", rating)
+        }
+        return nil
     }
 
     static func == (lhs: Book, rhs: Book) -> Bool {
