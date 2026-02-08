@@ -124,15 +124,23 @@ struct BookstoreView: View {
 
                     // Individual Books
                     ForEach(books) { bookWithScore in
-                        BookstoreBookRow(bookWithScore: bookWithScore)
-                            .padding(.horizontal)
-                            .onAppear {
-                                if bookWithScore.id == books.last?.id, hasMoreBooks, !isLoadingBooks {
-                                    Task {
-                                        await loadMoreBooks()
-                                    }
+                        VStack(spacing: 0) {
+                            BookstoreBookRow(bookWithScore: bookWithScore)
+                                .padding(.horizontal)
+
+                            if bookWithScore.id != books.last?.id {
+                                Divider()
+                                    .padding(.leading, 100)
+                                    .padding(.trailing, 16)
+                            }
+                        }
+                        .onAppear {
+                            if bookWithScore.id == books.last?.id, hasMoreBooks, !isLoadingBooks {
+                                Task {
+                                    await loadMoreBooks()
                                 }
                             }
+                        }
                     }
 
                     // Loading indicator for more books

@@ -268,7 +268,7 @@ private struct NeonSciFiSection: View {
         .padding(.vertical, 16)
         .background(
             LinearGradient(
-                colors: [Color(red: 0.05, green: 0.05, blue: 0.15), Color(red: 0.1, green: 0.05, blue: 0.2)],
+                colors: [Color(red: 0.15, green: 0.15, blue: 0.30), Color(red: 0.20, green: 0.15, blue: 0.35)],
                 startPoint: .leading,
                 endPoint: .trailing
             )
@@ -507,7 +507,7 @@ private struct DarkMysterySection: View {
         .padding(.vertical, 16)
         .background(
             LinearGradient(
-                colors: [Color(red: 0.12, green: 0.08, blue: 0.18), Color(red: 0.06, green: 0.04, blue: 0.1)],
+                colors: [Color(red: 0.25, green: 0.20, blue: 0.35), Color(red: 0.15, green: 0.12, blue: 0.25)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
