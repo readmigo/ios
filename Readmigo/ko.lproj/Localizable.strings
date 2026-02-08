@@ -25,3 +25,13 @@
 "profile.gender.other" = "기타";
 "profile.gender.prefer_not_to_say" = "응답하지 않음";
 "profile.gender.unknown" = "알 수 없음";
+
+/* Translation */
+"translation.title" = "번역";
+"translation.original" = "원문";
+"translation.translated" = "번역";
+"translation.notNeeded" = "영어이므로 번역이 필요하지 않습니다";
+"translation.error.notAvailable" = "번역을 사용할 수 없습니다";
+"translation.error.unsupportedLocale" = "이 언어는 지원되지 않습니다";
+"translation.error.network" = "네트워크 오류";
+"translation.error.unknown" = "번역을 불러오지 못했습니다";
