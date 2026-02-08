@@ -29,6 +29,9 @@ struct PagedWebViewContainer: View {
     let onContentReady: () -> Void
     var onParagraphLongPress: ((Int, String) -> Void)? = nil
 
+    // TTS highlight
+    var ttsHighlightParagraphIndex: Int? = nil
+
     // Typography settings
     var lineSpacing: LineSpacing
     var letterSpacing: CGFloat
@@ -116,6 +119,7 @@ struct PagedWebViewContainer: View {
                                 handleReachChapterEnd()
                             } : nil,
                             onAutoPageEnd: nil,
+                            ttsHighlightParagraphIndex: chapterView.isCurrent ? ttsHighlightParagraphIndex : nil,
                             onContentReady: {
                                 LoggingService.shared.debug(.reading, "📗 [ChapterView] contentReady - chapter:\(chapterView.chapterIndex), id:\(chapterView.id.prefix(8)), isCurrent:\(chapterView.isCurrent)", component: "PagedWebViewContainer")
                                 chapterView.isReady = true

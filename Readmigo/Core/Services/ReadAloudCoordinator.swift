@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 
 /// Coordinates a listen session: text supply → speech engine → UI sync.
 /// Handles cross-chapter auto-advance and progress persistence.
@@ -25,6 +26,12 @@ class ReadAloudCoordinator: ObservableObject {
     private var currentChapterIndex: Int = 0
     private var mode: ReadAloudMode = .continuous
     private var cancellables = Set<AnyCancellable>()
+    private var progressSaveTimer: Timer?
+
+    // Analytics
+    private var sessionStartTime: Date?
+    private var sessionParagraphsRead: Int = 0
+    private var sessionChaptersCompleted: Int = 0
 
     // MARK: - Callbacks (for ReaderView)
 
@@ -35,6 +42,7 @@ class ReadAloudCoordinator: ObservableObject {
 
     init() {
         observeEngine()
+        setupBackgroundObserver()
     }
 
     // MARK: - Observe TTS Engine
@@ -47,7 +55,9 @@ class ReadAloudCoordinator: ObservableObject {
                 guard let self, self.state != .idle || engineState != .idle else { return }
                 switch engineState {
                 case .playing: self.state = .playing
-                case .paused: self.state = .paused
+                case .paused:
+                    self.state = .paused
+                    self.savePosition()
                 case .idle:
                     if self.state == .loadingNextChapter { return }
                     self.state = .idle
@@ -62,6 +72,9 @@ class ReadAloudCoordinator: ObservableObject {
             .sink { [weak self] index in
                 self?.currentParagraphIndex = index
                 self?.onParagraphHighlight?(index)
+                if self?.sessionStartTime != nil {
+                    self?.sessionParagraphsRead += 1
+                }
             }
             .store(in: &cancellables)
     }
@@ -76,6 +89,11 @@ class ReadAloudCoordinator: ObservableObject {
         chapterIndex: Int,
         mode: ReadAloudMode = .continuous
     ) async {
+        // Stop audiobook if playing (mutual exclusion)
+        if AudiobookPlayer.shared.state.isPlaying || AudiobookPlayer.shared.state == .paused {
+            AudiobookPlayer.shared.stop()
+        }
+
         self.bookId = bookId
         self.bookTitle = bookTitle
         self.chapters = chapters
@@ -87,6 +105,15 @@ class ReadAloudCoordinator: ObservableObject {
             state = .idle
             return
         }
+
+        startProgressSaveTimer()
+
+        // Analytics: session start
+        sessionStartTime = Date()
+        sessionParagraphsRead = 0
+        sessionChaptersCompleted = 0
+        let voiceId = ttsEngine.currentVoice?.id ?? "default"
+        LoggingService.shared.info(.reading, "[TTS] Session started - bookId=\(bookId), chapterIndex=\(chapterIndex), voiceId=\(voiceId)", component: "ReadAloudCoordinator")
 
         let chapter = chapters[chapterIndex]
         await loadAndSpeak(chapter: chapter)
@@ -101,6 +128,11 @@ class ReadAloudCoordinator: ObservableObject {
         paragraphIndex: Int,
         mode: ReadAloudMode = .continuous
     ) async {
+        // Stop audiobook if playing (mutual exclusion)
+        if AudiobookPlayer.shared.state.isPlaying || AudiobookPlayer.shared.state == .paused {
+            AudiobookPlayer.shared.stop()
+        }
+
         self.bookId = bookId
         self.bookTitle = bookTitle
         self.chapters = chapters
@@ -112,6 +144,15 @@ class ReadAloudCoordinator: ObservableObject {
             state = .idle
             return
         }
+
+        startProgressSaveTimer()
+
+        // Analytics: session start from paragraph
+        sessionStartTime = Date()
+        sessionParagraphsRead = 0
+        sessionChaptersCompleted = 0
+        let voiceId = ttsEngine.currentVoice?.id ?? "default"
+        LoggingService.shared.info(.reading, "[TTS] Session started from paragraph - bookId=\(bookId), chapterIndex=\(chapterIndex), paragraphIndex=\(paragraphIndex), voiceId=\(voiceId)", component: "ReadAloudCoordinator")
 
         let chapter = chapters[chapterIndex]
         await loadAndSpeak(chapter: chapter, fromParagraph: paragraphIndex)
@@ -166,11 +207,15 @@ class ReadAloudCoordinator: ObservableObject {
     // MARK: - Chapter Navigation
 
     private func handleChapterEnd() async {
+        sessionChaptersCompleted += 1
+
         guard mode == .continuous, let next = nextChapter() else {
             state = .idle
             savePosition()
             return
         }
+
+        LoggingService.shared.info(.reading, "[TTS] Auto-advancing to next chapter - chapterIndex=\(currentChapterIndex + 1), chapterId=\(next.id)", component: "ReadAloudCoordinator")
 
         state = .loadingNextChapter
         currentChapterIndex += 1
@@ -201,12 +246,44 @@ class ReadAloudCoordinator: ObservableObject {
     }
 
     func stop() {
+        // Analytics: session end
+        if let startTime = sessionStartTime {
+            let duration = Date().timeIntervalSince(startTime)
+            LoggingService.shared.info(.reading, "[TTS] Session ended - duration=\(Int(duration))s, paragraphsRead=\(sessionParagraphsRead), chaptersCompleted=\(sessionChaptersCompleted)", component: "ReadAloudCoordinator")
+            sessionStartTime = nil
+        }
+
         savePosition()
+        stopProgressSaveTimer()
         ttsEngine.onChapterEnd = nil
         ttsEngine.stop()
         state = .idle
         bookId = nil
         chapters = []
+    }
+
+    // MARK: - Progress Save Timer
+
+    private func startProgressSaveTimer() {
+        stopProgressSaveTimer()
+        progressSaveTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.savePosition()
+            }
+        }
+    }
+
+    private func stopProgressSaveTimer() {
+        progressSaveTimer?.invalidate()
+        progressSaveTimer = nil
+    }
+
+    private func setupBackgroundObserver() {
+        NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                self?.savePosition()
+            }
+        }
     }
 
     // MARK: - Position Persistence

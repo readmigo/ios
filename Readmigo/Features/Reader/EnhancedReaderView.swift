@@ -24,10 +24,14 @@ struct EnhancedReaderView: View {
     @State private var hasAudiobook = false
     @State private var linkedAudiobook: Audiobook?
 
-    // Paragraph translation
+    // Paragraph translation / read aloud
     @State private var showTranslationSheet = false
+    @State private var showParagraphActionSheet = false
     @State private var translationParagraphIndex = 0
     @State private var translationParagraphText = ""
+
+    // TTS highlight sync
+    @State private var ttsHighlightParagraphIndex: Int?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
@@ -108,6 +112,7 @@ struct EnhancedReaderView: View {
                             onClose: {
                                 readAloudCoordinator.stop()
                                 showTTSControls = false
+                                ttsHighlightParagraphIndex = nil
                             }
                         )
                         .transition(.move(edge: .bottom))
@@ -205,6 +210,24 @@ struct EnhancedReaderView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.hidden)
         }
+        .confirmationDialog("", isPresented: $showParagraphActionSheet) {
+            Button("reader.translateParagraph".localized) {
+                showTranslationSheet = true
+            }
+            Button("reader.readAloudFromHere".localized) {
+                showTTSControls = true
+                Task {
+                    await readAloudCoordinator.startFromParagraph(
+                        bookId: viewModel.book.id,
+                        bookTitle: viewModel.book.title,
+                        chapters: viewModel.chapters,
+                        chapterIndex: viewModel.currentChapterIndex,
+                        paragraphIndex: translationParagraphIndex
+                    )
+                }
+            }
+            Button("common.cancel".localized, role: .cancel) {}
+        }
         .task {
             // Load book detail first if not already loaded
             await viewModel.loadBookDetailIfNeeded()
@@ -224,9 +247,14 @@ struct EnhancedReaderView: View {
                     }
                 }
             }
+
+            readAloudCoordinator.onParagraphHighlight = { index in
+                ttsHighlightParagraphIndex = index
+            }
         }
         .onDisappear {
             readAloudCoordinator.stop()
+            ttsHighlightParagraphIndex = nil
             viewModel.saveLocalProgress()
             // Sync to server if authenticated
             Task {
@@ -325,7 +353,7 @@ struct EnhancedReaderView: View {
                     onParagraphLongPress: { paragraphIndex, text in
                         translationParagraphIndex = paragraphIndex
                         translationParagraphText = text
-                        showTranslationSheet = true
+                        showParagraphActionSheet = true
                     },
                     // Advanced typography settings
                     lineSpacing: themeManager.lineSpacing,
@@ -334,7 +362,9 @@ struct EnhancedReaderView: View {
                     paragraphSpacing: themeManager.paragraphSpacing,
                     textAlignment: themeManager.textAlignment,
                     hyphenation: themeManager.hyphenation,
-                    fontWeight: themeManager.fontWeight
+                    fontWeight: themeManager.fontWeight,
+                    // TTS highlight
+                    ttsHighlightParagraphIndex: ttsHighlightParagraphIndex
                 )
             } else if let error = viewModel.error {
                 // Error state
@@ -370,6 +400,24 @@ struct EnhancedReaderView: View {
             } label: {
                 Image(systemName: "list.bullet")
                     .font(.title3)
+            }
+
+            Spacer()
+
+            // TTS button
+            Button {
+                let isActive = readAloudCoordinator.state == .playing || readAloudCoordinator.state == .paused
+                if isActive {
+                    showTTSControls = true
+                    withAnimation { showControls = false }
+                } else {
+                    startTTS()
+                }
+            } label: {
+                let isActive = readAloudCoordinator.state == .playing || readAloudCoordinator.state == .paused
+                Image(systemName: isActive ? "speaker.wave.2.fill" : "speaker.wave.2")
+                    .font(.title3)
+                    .foregroundColor(isActive ? .accentColor : .primary)
             }
 
             Spacer()

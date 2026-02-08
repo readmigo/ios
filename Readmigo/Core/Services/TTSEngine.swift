@@ -82,6 +82,38 @@ class TTSEngine: NSObject, ObservableObject {
         } catch {
             print("Failed to setup audio session: \(error)")
         }
+
+        NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] notification in
+            Task { @MainActor in
+                guard let self,
+                      let userInfo = notification.userInfo,
+                      let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+                      let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
+                switch type {
+                case .began:
+                    self.pause()
+                case .ended:
+                    if let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt,
+                       AVAudioSession.InterruptionOptions(rawValue: optionsValue).contains(.shouldResume) {
+                        self.resume()
+                    }
+                @unknown default:
+                    break
+                }
+            }
+        }
+
+        NotificationCenter.default.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { [weak self] notification in
+            Task { @MainActor in
+                guard let self,
+                      let userInfo = notification.userInfo,
+                      let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+                      let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
+                if reason == .oldDeviceUnavailable {
+                    self.pause()
+                }
+            }
+        }
     }
 
     // MARK: - Remote Controls (Lock Screen, Control Center)

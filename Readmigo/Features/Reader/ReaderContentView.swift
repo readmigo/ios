@@ -37,6 +37,9 @@ struct ReaderContentView: UIViewRepresentable {
     // Paragraph translation (long press)
     var onParagraphLongPress: ((Int, String) -> Void)? = nil
 
+    // TTS highlight
+    var ttsHighlightParagraphIndex: Int? = nil
+
     // Advanced typography settings
     var lineSpacing: LineSpacing = .normal
     var letterSpacing: CGFloat = 0
@@ -105,6 +108,16 @@ struct ReaderContentView: UIViewRepresentable {
         // Debug: Check if onParagraphLongPress is set
         if onParagraphLongPress != nil {
             LoggingService.shared.warning(.reading, "[updateUIView] onParagraphLongPress is SET", component: "ReaderContentView")
+        }
+
+        // TTS highlight sync
+        if context.coordinator.lastTTSHighlightIndex != ttsHighlightParagraphIndex {
+            context.coordinator.lastTTSHighlightIndex = ttsHighlightParagraphIndex
+            if let index = ttsHighlightParagraphIndex {
+                webView.evaluateJavaScript("ttsHighlightParagraph(\(index))")
+            } else {
+                webView.evaluateJavaScript("ttsClearHighlight()")
+            }
         }
 
         // Update scroll enabled based on reading mode
@@ -386,6 +399,18 @@ struct ReaderContentView: UIViewRepresentable {
                     font-size: 10px;
                 }
 
+                /* TTS Active Highlight */
+                .tts-active-paragraph {
+                    background-color: rgba(100, 149, 237, 0.15);
+                    border-radius: 4px;
+                    transition: background-color 0.2s ease;
+                }
+                .tts-active-sentence {
+                    background-color: rgba(100, 149, 237, 0.35);
+                    border-radius: 2px;
+                    transition: background-color 0.2s ease;
+                }
+
                 /* ========================================
                    Paged Reading Mode Styles
                    ======================================== */
@@ -644,6 +669,119 @@ struct ReaderContentView: UIViewRepresentable {
                 document.addEventListener('DOMContentLoaded', function() {
                     setTimeout(applyHighlights, 100);
                 });
+
+                // ========================================
+                // TTS Highlight Functions
+                // ========================================
+                let currentTTSParagraph = null;
+
+                function ttsHighlightParagraph(index) {
+                    // Clear previous highlight
+                    if (currentTTSParagraph) {
+                        currentTTSParagraph.classList.remove('tts-active-paragraph');
+                    }
+                    // Remove any sentence highlights
+                    document.querySelectorAll('.tts-active-sentence').forEach(function(el) {
+                        const parent = el.parentNode;
+                        parent.replaceChild(document.createTextNode(el.textContent), el);
+                        parent.normalize();
+                    });
+
+                    // Find paragraph by global index
+                    const p = document.querySelector('[data-global-paragraph-index="' + index + '"]');
+                    if (!p) return;
+
+                    p.classList.add('tts-active-paragraph');
+                    currentTTSParagraph = p;
+
+                    // Scroll into view (scroll mode) or navigate to page (paged mode)
+                    if (IS_PAGED) {
+                        // Find which page contains this paragraph
+                        const pages = document.querySelectorAll('.page');
+                        for (let i = 0; i < pages.length; i++) {
+                            if (pages[i].contains(p)) {
+                                if (i !== currentPageIndex) {
+                                    currentPageIndex = i;
+                                    const container = document.querySelector('.pages-container');
+                                    const offset = i * window.innerWidth;
+                                    container.style.transition = 'transform 0.3s ease-out';
+                                    container.style.transform = 'translateX(-' + offset + 'px)';
+                                    setTimeout(function() {
+                                        const indicator = document.getElementById('pageIndicator');
+                                        if (indicator) indicator.textContent = (i + 1) + ' / ' + totalPages;
+                                        window.webkit.messageHandlers.pageChange.postMessage({
+                                            current: i + 1,
+                                            total: totalPages
+                                        });
+                                    }, 300);
+                                }
+                                break;
+                            }
+                        }
+                    } else {
+                        p.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+
+                function ttsHighlightSentence(paragraphIndex, sentenceText) {
+                    // Remove previous sentence highlights
+                    document.querySelectorAll('.tts-active-sentence').forEach(function(el) {
+                        const parent = el.parentNode;
+                        parent.replaceChild(document.createTextNode(el.textContent), el);
+                        parent.normalize();
+                    });
+
+                    const p = document.querySelector('[data-global-paragraph-index="' + paragraphIndex + '"]');
+                    if (!p || !sentenceText) return;
+
+                    // Find and wrap the sentence text
+                    const textNodes = [];
+                    const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT, null, false);
+                    var node;
+                    while (node = walker.nextNode()) {
+                        textNodes.push(node);
+                    }
+
+                    var combined = '';
+                    var nodeMap = [];
+                    textNodes.forEach(function(tn) {
+                        for (var i = 0; i < tn.textContent.length; i++) {
+                            nodeMap.push({ node: tn, offset: i });
+                        }
+                        combined += tn.textContent;
+                    });
+
+                    var idx = combined.indexOf(sentenceText);
+                    if (idx === -1) return;
+
+                    var startInfo = nodeMap[idx];
+                    var endIdx = idx + sentenceText.length - 1;
+                    var endInfo = nodeMap[endIdx];
+                    if (!startInfo || !endInfo) return;
+
+                    try {
+                        var range = document.createRange();
+                        range.setStart(startInfo.node, startInfo.offset);
+                        range.setEnd(endInfo.node, endInfo.offset + 1);
+                        var span = document.createElement('span');
+                        span.className = 'tts-active-sentence';
+                        range.surroundContents(span);
+                    } catch(e) {
+                        // Cross-node range, skip sentence highlight
+                    }
+                }
+
+                function ttsClearHighlight() {
+                    if (currentTTSParagraph) {
+                        currentTTSParagraph.classList.remove('tts-active-paragraph');
+                        currentTTSParagraph = null;
+                    }
+                    document.querySelectorAll('.tts-active-sentence').forEach(function(el) {
+                        var parent = el.parentNode;
+                        parent.replaceChild(document.createTextNode(el.textContent), el);
+                        parent.normalize();
+                    });
+                }
 
                 // ========================================
                 // Paged Mode State
@@ -1909,6 +2047,7 @@ struct ReaderContentView: UIViewRepresentable {
         var highlights: [Bookmark] = []
         weak var webView: WKWebView?
         var lastContentKey: String?
+        var lastTTSHighlightIndex: Int?
 
         init(
             onProgressUpdate: @escaping (Double) -> Void,
